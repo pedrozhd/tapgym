@@ -9,6 +9,7 @@ import { ExercicioEmFocoCard } from "@/components/dashboard/exercicio-em-foco-ca
 import { ExercicioGrid } from "@/components/dashboard/exercicio-grid";
 import { ExercicioMaisEvoluidoCard } from "@/components/dashboard/exercicio-mais-evoluido-card";
 import { TreinoDeHojeCard } from "@/components/dashboard/treino-de-hoje-card";
+import { VolumeSeriesPorGrupoCard } from "@/components/dashboard/volume-series-por-grupo-card";
 import { SoftCard } from "@/components/ui/soft-card";
 import { TypographyH4, TypographyMuted } from "@/components/ui/typography";
 import { getDashboardData } from "@/lib/dashboard";
@@ -69,6 +70,10 @@ export default function DashboardPage() {
                       </SoftCard>
                     )}
                     <ExercicioGrid exercicios={dashboard.exercicios} />
+                    <VolumeSeriesPorGrupoCard
+                      volumes={dashboard.volumeSeriesPorGrupo}
+                      exerciciosSemGrupo={dashboard.exerciciosSemGrupo}
+                    />
                   </>
                 ) : (
                   <>
@@ -79,6 +84,10 @@ export default function DashboardPage() {
                       </TypographyMuted>
                     </SoftCard>
                     <ExercicioMaisEvoluidoCard dados={dashboard.exercicioMaisEvoluido} />
+                    <VolumeSeriesPorGrupoCard
+                      volumes={dashboard.volumeSeriesPorGrupo}
+                      exerciciosSemGrupo={dashboard.exerciciosSemGrupo}
+                    />
                   </>
                 )}
               </>
