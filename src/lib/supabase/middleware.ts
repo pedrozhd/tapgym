@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-/** Refreshes the Supabase session cookie on every request and gates the app routes behind auth. */
+/** Refreshes the Supabase session cookie on every request and gates the app routes behind auth e assinatura. */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -33,6 +33,7 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isAuthRoute = pathname.startsWith("/login");
   const isLandingPage = pathname === "/";
+  const isAssinarRoute = pathname === "/assinar";
 
   // `getUser()` acima pode ter renovado o cookie de sessão (via `setAll`),
   // o que só foi gravado em `supabaseResponse`. Redirecionar retornando uma
@@ -57,6 +58,24 @@ export async function updateSession(request: NextRequest) {
   // novo — manda direto pra Dashboard.
   if (user && (isAuthRoute || isLandingPage)) {
     return redirectPreservingSession("/dashboard");
+  }
+
+  if (user && !isAuthRoute && !isLandingPage) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_legacy_free, subscription_status")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const temAcesso = profile?.is_legacy_free || profile?.subscription_status === "active";
+
+    if (!temAcesso && !isAssinarRoute) {
+      return redirectPreservingSession("/assinar");
+    }
+
+    if (temAcesso && isAssinarRoute) {
+      return redirectPreservingSession("/dashboard");
+    }
   }
 
   return supabaseResponse;
