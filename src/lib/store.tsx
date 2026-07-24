@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Exercicio, Qualidade, Serie, Treino, TreinoExercicio } from "@/lib/types";
+import type { Exercicio, GrupoMuscular, Qualidade, Serie, Treino, TreinoExercicio } from "@/lib/types";
 
 /**
  * Client-side data layer backed by Supabase. Holds the same four tables in
@@ -39,6 +39,7 @@ interface AppStoreValue extends AppDb {
   addExercicioATreino: (treinoId: string) => Promise<void>;
   vincularExercicioExistente: (treinoId: string, exercicioId: string) => Promise<void>;
   renameExercicio: (exercicioId: string, nome: string) => Promise<void>;
+  updateGrupoMuscular: (exercicioId: string, grupo: GrupoMuscular) => Promise<void>;
   updateSeriesConfig: (treinoExercicioId: string, numSeries: number, repMin: number, repMax: number) => Promise<void>;
   removeExercicioDoTreino: (treinoExercicioId: string) => Promise<void>;
   excluirExercicioDefinitivamente: (exercicioId: string) => Promise<void>;
@@ -179,6 +180,15 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
       async renameExercicio(exercicioId, nome) {
         await supabase.from("exercicios").update({ nome }).eq("id", exercicioId).throwOnError();
+        await refresh();
+      },
+
+      async updateGrupoMuscular(exercicioId, grupo) {
+        await supabase
+          .from("exercicios")
+          .update({ grupo_muscular: grupo })
+          .eq("id", exercicioId)
+          .throwOnError();
         await refresh();
       },
 
