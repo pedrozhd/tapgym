@@ -8,6 +8,24 @@ create table if not exists public.exercicios (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
   nome text not null,
+  grupo_muscular text check (
+    grupo_muscular is null
+    or grupo_muscular in (
+      'ombros',
+      'costas',
+      'peito',
+      'triceps',
+      'biceps',
+      'antebraco',
+      'panturrilha',
+      'abdomen',
+      'gluteo',
+      'posterior_de_coxa',
+      'quadriceps',
+      'trapezio',
+      'adutores'
+    )
+  ),
   created_at timestamptz not null default now()
 );
 

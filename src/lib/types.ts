@@ -1,3 +1,18 @@
+export type GrupoMuscular =
+  | "ombros"
+  | "costas"
+  | "peito"
+  | "triceps"
+  | "biceps"
+  | "antebraco"
+  | "panturrilha"
+  | "abdomen"
+  | "gluteo"
+  | "posterior_de_coxa"
+  | "quadriceps"
+  | "trapezio"
+  | "adutores";
+
 export type Qualidade = "boa" | "razoavel" | "ruim";
 
 export type Tendencia = "subiu" | "manteve" | "estagnado";
@@ -6,6 +21,8 @@ export interface Exercicio {
   id: string;
   user_id: string;
   nome: string;
+  /** Null = legado ou exercício recém-criado ainda sem classificação. */
+  grupo_muscular: GrupoMuscular | null;
   created_at: string;
 }
 
@@ -55,4 +72,9 @@ export interface VolumeSemana {
   /** ISO date (Monday) marking the start of the week. */
   semana: string;
   volume: number;
+}
+
+export interface VolumeGrupoSemana {
+  grupo: GrupoMuscular;
+  series: number;
 }

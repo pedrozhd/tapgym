@@ -29,15 +29,15 @@ export const mockTreinos: Treino[] = [
 ];
 
 export const mockExercicios: Exercicio[] = [
-  { id: "ex-supino", user_id: MOCK_USER_ID, nome: "Supino Reto", created_at: isoDaysAgo(120) },
-  { id: "ex-desenvolvimento", user_id: MOCK_USER_ID, nome: "Desenvolvimento com Halteres", created_at: isoDaysAgo(120) },
-  { id: "ex-triceps-corda", user_id: MOCK_USER_ID, nome: "Tríceps Corda", created_at: isoDaysAgo(120) },
-  { id: "ex-puxada", user_id: MOCK_USER_ID, nome: "Puxada Frente", created_at: isoDaysAgo(120) },
-  { id: "ex-remada-baixa", user_id: MOCK_USER_ID, nome: "Remada Baixa", created_at: isoDaysAgo(120) },
-  { id: "ex-rosca-direta", user_id: MOCK_USER_ID, nome: "Rosca Direta", created_at: isoDaysAgo(120) },
-  { id: "ex-agachamento", user_id: MOCK_USER_ID, nome: "Agachamento Livre", created_at: isoDaysAgo(120) },
-  { id: "ex-leg-press", user_id: MOCK_USER_ID, nome: "Leg Press", created_at: isoDaysAgo(120) },
-  { id: "ex-cadeira-extensora", user_id: MOCK_USER_ID, nome: "Cadeira Extensora", created_at: isoDaysAgo(120) },
+  { id: "ex-supino", user_id: MOCK_USER_ID, nome: "Supino Reto", grupo_muscular: "peito", created_at: isoDaysAgo(120) },
+  { id: "ex-desenvolvimento", user_id: MOCK_USER_ID, nome: "Desenvolvimento com Halteres", grupo_muscular: "ombros", created_at: isoDaysAgo(120) },
+  { id: "ex-triceps-corda", user_id: MOCK_USER_ID, nome: "Tríceps Corda", grupo_muscular: "triceps", created_at: isoDaysAgo(120) },
+  { id: "ex-puxada", user_id: MOCK_USER_ID, nome: "Puxada Frente", grupo_muscular: "costas", created_at: isoDaysAgo(120) },
+  { id: "ex-remada-baixa", user_id: MOCK_USER_ID, nome: "Remada Baixa", grupo_muscular: "costas", created_at: isoDaysAgo(120) },
+  { id: "ex-rosca-direta", user_id: MOCK_USER_ID, nome: "Rosca Direta", grupo_muscular: "biceps", created_at: isoDaysAgo(120) },
+  { id: "ex-agachamento", user_id: MOCK_USER_ID, nome: "Agachamento Livre", grupo_muscular: "quadriceps", created_at: isoDaysAgo(120) },
+  { id: "ex-leg-press", user_id: MOCK_USER_ID, nome: "Leg Press", grupo_muscular: "quadriceps", created_at: isoDaysAgo(120) },
+  { id: "ex-cadeira-extensora", user_id: MOCK_USER_ID, nome: "Cadeira Extensora", grupo_muscular: "quadriceps", created_at: isoDaysAgo(120) },
 ];
 
 export const mockTreinoExercicios: TreinoExercicio[] = [
