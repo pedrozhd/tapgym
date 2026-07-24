@@ -1,11 +1,14 @@
 import { APP_TIMEZONE, getDataLocalISO, getDiaSemanaNoFuso } from "@/lib/timezone";
+import { GRUPOS_MUSCULARES } from "@/lib/grupos-musculares";
 import type {
   Exercicio,
+  GrupoMuscular,
   Qualidade,
   Serie,
   Tendencia,
   Treino,
   TreinoExercicio,
+  VolumeGrupoSemana,
   VolumeSemana,
 } from "@/lib/types";
 
@@ -101,6 +104,45 @@ export function getVolumeSemanal(series: Serie[], semanas = 8): VolumeSemana[] {
     .sort((a, b) => a[0].localeCompare(b[0]))
     .slice(-semanas)
     .map(([semana, volume]) => ({ semana, volume: Math.round(volume) }));
+}
+
+/**
+ * Séries registradas na semana civil atual (seg–dom, fuso do app), agrupadas
+ * pelo grupamento principal do exercício. Exercícios sem grupo não entram
+ * em `volumes`; entram em `exerciciosSemGrupo` (IDs distintos com série na
+ * semana e grupo null).
+ */
+export function getVolumeSeriesPorGrupo(
+  series: Serie[],
+  exercicios: Exercicio[],
+  data: Date = new Date(),
+): { volumes: VolumeGrupoSemana[]; exerciciosSemGrupo: number } {
+  const semanaAtual = inicioDaSemana(getDataLocalISO(data, APP_TIMEZONE));
+  const grupoPorExercicio = new Map(exercicios.map((e) => [e.id, e.grupo_muscular] as const));
+
+  const contagem = new Map<GrupoMuscular, number>();
+  const semGrupo = new Set<string>();
+
+  for (const s of series) {
+    if (inicioDaSemana(s.data) !== semanaAtual) continue;
+    const grupo = grupoPorExercicio.get(s.exercicio_id) ?? null;
+    if (!grupo) {
+      semGrupo.add(s.exercicio_id);
+      continue;
+    }
+    contagem.set(grupo, (contagem.get(grupo) ?? 0) + 1);
+  }
+
+  const ordemCatalogo = new Map(GRUPOS_MUSCULARES.map((g, i) => [g, i]));
+  const volumes = [...contagem.entries()]
+    .map(([grupo, seriesCount]) => ({ grupo, series: seriesCount }))
+    .sort(
+      (a, b) =>
+        b.series - a.series ||
+        (ordemCatalogo.get(a.grupo) ?? 0) - (ordemCatalogo.get(b.grupo) ?? 0),
+    );
+
+  return { volumes, exerciciosSemGrupo: semGrupo.size };
 }
 
 /** Só sugere progressão de carga se as repetições alcançaram o topo da faixa com boa qualidade. */
@@ -218,6 +260,8 @@ export interface DashboardVM {
   treino: { id: string; nome: string; totalExercicios: number } | null;
   exercicios: DashboardExercicioVM[];
   volumeSemanal: VolumeSemana[];
+  volumeSeriesPorGrupo: VolumeGrupoSemana[];
+  exerciciosSemGrupo: number;
   exercicioMaisEvoluido: ExercicioEvolucao | null;
   exercicioEmFoco: ExercicioEmFoco | null;
 }
@@ -230,11 +274,18 @@ export function getDashboardData(
   data: Date = new Date(),
 ): DashboardVM {
   const treinoDeHoje = getTreinoDeHoje(treinos, data);
+  const { volumes: volumeSeriesPorGrupo, exerciciosSemGrupo } = getVolumeSeriesPorGrupo(
+    series,
+    exercicios,
+    data,
+  );
   if (!treinoDeHoje) {
     return {
       treino: null,
       exercicios: [],
       volumeSemanal: getVolumeSemanal(series),
+      volumeSeriesPorGrupo,
+      exerciciosSemGrupo,
       exercicioMaisEvoluido: getExercicioMaisEvoluido(exercicios, series),
       exercicioEmFoco: null,
     };
@@ -264,6 +315,8 @@ export function getDashboardData(
     },
     exercicios: exerciciosVM,
     volumeSemanal: getVolumeSemanal(series),
+    volumeSeriesPorGrupo,
+    exerciciosSemGrupo,
     exercicioMaisEvoluido: getExercicioMaisEvoluido(exercicios, series),
     exercicioEmFoco: getExercicioEmFoco(exerciciosDoTreino, exercicios, series, hojeISO),
   };
