@@ -99,6 +99,11 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
         </div>
 
         <SheetFooter>
+          <form action="/api/stripe/portal" method="POST">
+            <Button type="submit" variant="outline" className="h-11 w-full rounded-xl">
+              Gerenciar assinatura
+            </Button>
+          </form>
           <Button variant="outline" onClick={onSignOut} className="h-11 rounded-xl">
             Sair
           </Button>
