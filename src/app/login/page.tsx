@@ -56,7 +56,7 @@ export default function LoginPage() {
       return;
     }
     if (data.session) {
-      router.replace("/dashboard");
+      router.replace("/assinar");
       router.refresh();
       return;
     }
