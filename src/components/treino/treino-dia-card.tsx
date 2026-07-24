@@ -17,7 +17,7 @@ import { AdicionarExercicioDialog } from "@/components/treino/adicionar-exercici
 import { SortableTreinoExercicioRow } from "@/components/treino/sortable-treino-exercicio-row";
 import { BlurCommitInput } from "@/components/ui/blur-commit-input";
 import { SoftCard } from "@/components/ui/soft-card";
-import type { Exercicio, TreinoExercicioComExercicio } from "@/lib/types";
+import type { Exercicio, GrupoMuscular, TreinoExercicioComExercicio } from "@/lib/types";
 
 interface TreinoDiaCardProps {
   nome: string;
@@ -32,6 +32,7 @@ interface TreinoDiaCardProps {
   onReordenarExercicios: (treinoExercicioIdsEmOrdem: string[]) => void;
   onDesvincularExercicio: (treinoExercicioId: string) => void;
   onApagarExercicioDefinitivamente: (exercicioId: string) => void;
+  onGrupoMuscularChange: (exercicioId: string, grupo: GrupoMuscular) => void;
 }
 
 export function TreinoDiaCard({
@@ -47,6 +48,7 @@ export function TreinoDiaCard({
   onReordenarExercicios,
   onDesvincularExercicio,
   onApagarExercicioDefinitivamente,
+  onGrupoMuscularChange,
 }: TreinoDiaCardProps) {
   const [editandoNome, setEditandoNome] = useState(false);
   const [adicionandoExercicio, setAdicionandoExercicio] = useState(false);
@@ -122,6 +124,8 @@ export function TreinoDiaCard({
                 onRepMaxChange={(v) => onSeriesConfigChange(te.id, te.num_series, te.rep_min, v)}
                 onDesvincular={() => onDesvincularExercicio(te.id)}
                 onApagarDefinitivamente={() => onApagarExercicioDefinitivamente(te.exercicio_id)}
+                grupoMuscular={te.exercicio.grupo_muscular}
+                onGrupoMuscularChange={(grupo) => onGrupoMuscularChange(te.exercicio_id, grupo)}
               />
             ))}
           </div>

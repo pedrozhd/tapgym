@@ -4,12 +4,16 @@ import { useState, type HTMLAttributes } from "react";
 import { GripVertical, Link2 } from "lucide-react";
 import { BlurCommitInput } from "@/components/ui/blur-commit-input";
 import { RemoverExercicioDialog } from "@/components/treino/remover-exercicio-dialog";
+import { GRUPOS_MUSCULARES, LABEL_GRUPO_MUSCULAR } from "@/lib/grupos-musculares";
+import type { GrupoMuscular } from "@/lib/types";
 
 interface TreinoExercicioRowProps {
   nome: string;
   numSeries: number;
   repMin: number;
   repMax: number;
+  grupoMuscular: GrupoMuscular | null;
+  onGrupoMuscularChange: (grupo: GrupoMuscular) => void;
   /** Nomes de outros treinos que também usam este mesmo exercício (histórico compartilhado). */
   compartilhadoCom: string[];
   onRename: (nome: string) => void;
@@ -26,6 +30,8 @@ export function TreinoExercicioRow({
   numSeries,
   repMin,
   repMax,
+  grupoMuscular,
+  onGrupoMuscularChange,
   compartilhadoCom,
   onRename,
   onNumSeriesChange,
@@ -103,6 +109,28 @@ export function TreinoExercicioRow({
           className="h-7 w-7 shrink-0 border-input bg-secondary/60 px-1 text-center text-[13px]"
         />
         <span className="shrink-0">reps</span>
+      </div>
+
+      <div className="pl-[26px]">
+        <select
+          aria-label="Grupamento muscular"
+          value={grupoMuscular ?? ""}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (!value) return;
+            onGrupoMuscularChange(value as GrupoMuscular);
+          }}
+          className="h-7 w-full max-w-[220px] rounded-md border border-input bg-secondary/60 px-2 text-[13px] text-foreground"
+        >
+          <option value="" disabled>
+            Escolher grupamento
+          </option>
+          {GRUPOS_MUSCULARES.map((grupo) => (
+            <option key={grupo} value={grupo}>
+              {LABEL_GRUPO_MUSCULAR[grupo]}
+            </option>
+          ))}
+        </select>
       </div>
 
       <RemoverExercicioDialog

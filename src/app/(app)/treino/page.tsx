@@ -24,6 +24,7 @@ export default function MeuTreinoPage() {
     excluirExercicioDefinitivamente,
     reordenarExerciciosDoTreino,
     setTreinoDoDia,
+    updateGrupoMuscular,
   } = useAppStore();
 
   const treinosOrdenados = [...treinos].sort((a, b) => a.ordem - b.ordem);
@@ -77,6 +78,7 @@ export default function MeuTreinoPage() {
                 onReordenarExercicios={reordenarExerciciosDoTreino}
                 onDesvincularExercicio={removeExercicioDoTreino}
                 onApagarExercicioDefinitivamente={excluirExercicioDefinitivamente}
+                onGrupoMuscularChange={updateGrupoMuscular}
               />
             );
           })}
