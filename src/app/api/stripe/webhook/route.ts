@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     if (session.client_reference_id) {
-      await admin
+      const { error } = await admin
         .from("profiles")
         .update({
           stripe_customer_id: session.customer as string,
@@ -32,23 +32,32 @@ export async function POST(request: Request) {
           subscription_status: "active",
         })
         .eq("id", session.client_reference_id);
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
     }
   }
 
   if (event.type === "customer.subscription.updated") {
     const subscription = event.data.object as Stripe.Subscription;
-    await admin
+    const { error } = await admin
       .from("profiles")
       .update({ subscription_status: subscription.status })
       .eq("stripe_subscription_id", subscription.id);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
   }
 
   if (event.type === "customer.subscription.deleted") {
     const subscription = event.data.object as Stripe.Subscription;
-    await admin
+    const { error } = await admin
       .from("profiles")
       .update({ subscription_status: "canceled" })
       .eq("stripe_subscription_id", subscription.id);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ received: true });
