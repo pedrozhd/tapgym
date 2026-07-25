@@ -9,7 +9,11 @@ const TABS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
   { href: "/registro", label: "Registro", icon: CirclePlus },
   { href: "/treino", label: "Meu Treino", icon: Dumbbell },
-  { href: "/exercicios", label: "Histórico", icon: History },
+  // `/exercicio/[id]` (singular) é o detalhe de um exercício e pertence à aba
+  // Histórico. Um `startsWith("/exercicios")` não pega esse path — antes a
+  // tela de detalhe ficava sem nenhuma aba marcada, justamente onde o usuário
+  // cai vindo de "Ver histórico do exercício".
+  { href: "/exercicios", label: "Histórico", icon: History, extraPrefix: "/exercicio/" },
 ] as const;
 
 export function BottomNav() {
@@ -29,8 +33,10 @@ export function BottomNav() {
     >
       <div className="shadow-soft-elevated absolute inset-0 rounded-3xl bg-card" />
       <div className="relative grid grid-cols-4 gap-1 px-2 py-2">
-        {TABS.map(({ href, label, icon: Icon }) => {
-          const active = pathname.startsWith(href);
+        {TABS.map((tab) => {
+          const { href, label, icon: Icon } = tab;
+          const extraPrefix = "extraPrefix" in tab ? tab.extraPrefix : undefined;
+          const active = pathname.startsWith(href) || (extraPrefix ? pathname.startsWith(extraPrefix) : false);
           return (
             <Link
               key={href}

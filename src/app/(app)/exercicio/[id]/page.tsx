@@ -1,14 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AppHeader } from "@/components/layout/app-header";
 import { EditarSerieDialog } from "@/components/registro/editar-serie-dialog";
 import { QualidadeIcon } from "@/components/registro/qualidade-icon";
 import { SoftCard } from "@/components/ui/soft-card";
-import { ToastPill } from "@/components/ui/toast-pill";
 import { TypographyEyebrow, TypographyMuted } from "@/components/ui/typography";
 import { formatCarga } from "@/lib/dashboard";
 import { useAppStore } from "@/lib/store";
@@ -26,23 +25,6 @@ export default function ExercicioHistoricoPage() {
   const params = useParams<{ id: string }>();
   const { exercicios, series, loading, updateSerie, removeSerie } = useAppStore();
   const [serieEditando, setSerieEditando] = useState<Serie | null>(null);
-  const [toast, setToast] = useState<{ msg: string; key: number } | null>(null);
-
-  const toastKeyRef = useRef(0);
-  function mostrarToast(msg: string) {
-    toastKeyRef.current += 1;
-    setToast({ msg, key: toastKeyRef.current });
-    window.setTimeout(() => setToast(null), 1800);
-  }
-
-  async function onRemoverSerie(serieId: string) {
-    if (!window.confirm("Apagar essa série? Não dá pra desfazer.")) return;
-    try {
-      await removeSerie(serieId);
-    } catch {
-      mostrarToast("Não deu pra apagar — tenta de novo");
-    }
-  }
 
   const exercicio = exercicios.find((e) => e.id === params.id);
   const seriesAntigaPrimeiro = series
@@ -113,9 +95,12 @@ export default function ExercicioHistoricoPage() {
                       yAxisId="carga"
                       type="monotone"
                       dataKey="carga"
-                      stroke="#22c55e"
+                      // var(--primary), não hex: o hex fixo era o verde do tema
+                      // claro (morto), então a linha saía verde enquanto a
+                      // bolinha da legenda usa bg-primary e é lima no dark.
+                      stroke="var(--primary)"
                       strokeWidth={2}
-                      style={{ filter: "drop-shadow(0 0 6px rgba(34,197,94,0.55))" }}
+                      style={{ filter: "drop-shadow(0 0 6px var(--primary))" }}
                       dot={(props: { cx?: number; cy?: number; index?: number }) => {
                         const isLast = props.index === seriesAntigaPrimeiro.length - 1;
                         if (!isLast || props.cx == null || props.cy == null) return <g key={props.index} />;
@@ -125,12 +110,12 @@ export default function ExercicioHistoricoPage() {
                             cx={props.cx}
                             cy={props.cy}
                             r={3}
-                            fill="#22c55e"
-                            style={{ filter: "drop-shadow(0 0 5px #22c55e)" }}
+                            fill="var(--primary)"
+                            style={{ filter: "drop-shadow(0 0 5px var(--primary))" }}
                           />
                         );
                       }}
-                      activeDot={{ r: 4, fill: "#22c55e" }}
+                      activeDot={{ r: 4, fill: "var(--primary)" }}
                     />
                     <Line
                       yAxisId="reps"
@@ -150,34 +135,25 @@ export default function ExercicioHistoricoPage() {
             <section className="flex flex-col gap-2.5">
               <TypographyEyebrow>TODAS AS SÉRIES ({seriesRecentePrimeiro.length})</TypographyEyebrow>
               <div className="flex flex-col gap-2">
+                {/* A linha inteira abre a edição (que também apaga). Antes eram
+                    dois botões de ícone de 14 e 15px, sem padding e a 8px um do
+                    outro — o de apagar era destrutivo. */}
                 {seriesRecentePrimeiro.map((s) => (
-                  <div
+                  <button
                     key={s.id}
-                    className="shadow-soft-subtle flex items-center justify-between rounded-xl bg-card px-4 py-3"
+                    type="button"
+                    onClick={() => setSerieEditando(s)}
+                    aria-label={`Editar série de ${formatDataSerie(s.data)}: ${formatCarga(s.carga)} kg por ${s.reps} repetições`}
+                    className="shadow-soft-subtle flex min-h-11 w-full items-center justify-between rounded-xl bg-card px-4 py-3 text-left active:opacity-70"
                   >
                     <span className="w-16 shrink-0 text-[13px] text-muted-foreground">{formatDataSerie(s.data)}</span>
                     <span className="flex-1 text-center text-[15px] font-bold">{formatCarga(s.carga)} kg</span>
                     <span className="flex shrink-0 items-center justify-end gap-2">
                       <span className="text-[13px] text-muted-foreground">× {s.reps}</span>
                       <QualidadeIcon qualidade={s.qualidade} />
-                      <button
-                        type="button"
-                        onClick={() => setSerieEditando(s)}
-                        aria-label="Editar série"
-                        className="text-muted-foreground/60 active:opacity-60"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onRemoverSerie(s.id)}
-                        aria-label="Apagar série"
-                        className="text-muted-foreground/60 active:opacity-60"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      <Pencil size={14} className="text-muted-foreground" aria-hidden="true" />
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </section>
@@ -185,12 +161,11 @@ export default function ExercicioHistoricoPage() {
         )}
       </main>
 
-      <ToastPill message={toast?.msg ?? null} toastKey={toast?.key ?? 0} />
-
       <EditarSerieDialog
         serie={serieEditando}
         onOpenChange={(open) => !open && setSerieEditando(null)}
         onSave={(serieId, carga, reps, qualidade) => updateSerie(serieId, carga, reps, qualidade)}
+        onDelete={removeSerie}
       />
     </>
   );

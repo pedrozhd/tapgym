@@ -11,13 +11,17 @@ interface EditarSerieDialogProps {
   serie: Serie | null;
   onOpenChange: (open: boolean) => void;
   onSave: (serieId: string, carga: number, reps: number, qualidade: Qualidade) => Promise<void>;
+  onDelete: (serieId: string) => Promise<void>;
 }
 
-export function EditarSerieDialog({ serie, onOpenChange, onSave }: EditarSerieDialogProps) {
+export function EditarSerieDialog({ serie, onOpenChange, onSave, onDelete }: EditarSerieDialogProps) {
   const [carga, setCarga] = useState(0);
   const [reps, setReps] = useState(0);
   const [qualidade, setQualidade] = useState<Qualidade | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [apagando, setApagando] = useState(false);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
   const [serieIdSincronizado, setSerieIdSincronizado] = useState<string | null>(null);
 
   // Repopula os campos sempre que uma nova série é aberta pra edição —
@@ -28,16 +32,38 @@ export function EditarSerieDialog({ serie, onOpenChange, onSave }: EditarSerieDi
     setCarga(serie.carga);
     setReps(serie.reps);
     setQualidade(serie.qualidade);
+    setConfirmandoExclusao(false);
+    setErro(null);
   }
+
+  const ocupado = salvando || apagando;
 
   async function onSubmit() {
     if (!serie || !qualidade || carga <= 0 || reps <= 0) return;
+    setErro(null);
     setSalvando(true);
     try {
       await onSave(serie.id, carga, reps, qualidade);
       onOpenChange(false);
+    } catch {
+      setErro("Não deu pra salvar — tenta de novo.");
     } finally {
       setSalvando(false);
+    }
+  }
+
+  async function onConfirmarExclusao() {
+    if (!serie) return;
+    setErro(null);
+    setApagando(true);
+    try {
+      await onDelete(serie.id);
+      onOpenChange(false);
+    } catch {
+      setErro("Não deu pra apagar — tenta de novo.");
+      setConfirmandoExclusao(false);
+    } finally {
+      setApagando(false);
     }
   }
 
@@ -73,13 +99,57 @@ export function EditarSerieDialog({ serie, onOpenChange, onSave }: EditarSerieDi
 
         <QualidadePicker qualidade={qualidade} onChange={setQualidade} />
 
+        {erro && (
+          <p role="alert" className="text-[13px] text-destructive">
+            {erro}
+          </p>
+        )}
+
         <Button
           onClick={onSubmit}
-          disabled={salvando || carga <= 0 || reps <= 0 || !qualidade}
+          disabled={ocupado || carga <= 0 || reps <= 0 || !qualidade}
           className="shadow-soft-elevated h-11 w-full rounded-xl"
         >
           {salvando ? "Salvando..." : "Salvar"}
         </Button>
+
+        {/* Confirmação em dois toques, no lugar do window.confirm que era usado
+            antes: fica dentro do desenho do app e mantém a ação destrutiva
+            separada do "Salvar", em vez de encostada num ícone de 12px. */}
+        {confirmandoExclusao ? (
+          <div className="flex flex-col gap-2 border-t border-border pt-3">
+            <p className="text-center text-[13px] text-muted-foreground">
+              Apagar essa série? Não dá pra desfazer.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setConfirmandoExclusao(false)}
+                disabled={ocupado}
+                className="h-11 flex-1 rounded-xl"
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={onConfirmarExclusao}
+                disabled={ocupado}
+                className="h-11 flex-1 rounded-xl font-bold"
+              >
+                {apagando ? "Apagando..." : "Apagar"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            onClick={() => setConfirmandoExclusao(true)}
+            disabled={ocupado}
+            className="h-11 w-full rounded-xl text-destructive"
+          >
+            Apagar série
+          </Button>
+        )}
       </DialogContent>
     </Dialog>
   );

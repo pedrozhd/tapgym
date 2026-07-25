@@ -1,12 +1,21 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SairButton } from "@/components/auth/sair-button";
 import { PLANO } from "@/lib/pricing";
 
 export default function AssinarPage() {
   return (
-    <div className="relative mx-auto flex h-dvh w-full max-w-[430px] flex-col justify-center bg-background px-6 text-foreground">
+    // min-h-svh: mesma razão de (app)/layout.tsx e do /login — dvh oscila
+    // quando a barra do Safari some na rolagem.
+    <div className="mx-auto flex min-h-svh w-full max-w-[430px] flex-col justify-center bg-background px-6 py-10 text-foreground">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-extrabold tracking-tight">TapGym</h1>
-        <p className="mt-2 text-muted-foreground">Assine para continuar sua progressão.</p>
+        {/* Diz explicitamente que a conta já existe: quem chega aqui vindo do
+            cadastro achava que ainda estava no meio do processo, e leu o botão
+            de sair como "voltar" — perdendo a sessão que acabou de criar. */}
+        <p className="mt-2 text-muted-foreground">
+          Sua conta está criada. Assine para liberar o app.
+        </p>
       </div>
 
       <div className="shadow-soft-elevated rounded-2xl bg-card p-6 text-center">
@@ -28,6 +37,21 @@ export default function AssinarPage() {
             Assinar
           </Button>
         </form>
+      </div>
+
+      {/* Duas saídas, em ordem de custo: voltar pra LP mantém a sessão (o
+          middleware libera a "/" pra quem está logado sem assinatura), sair
+          encerra. Antes só existia a segunda. */}
+      <div className="mt-6 flex flex-col gap-2">
+        <Button
+          render={<Link href="/" />}
+          nativeButton={false}
+          variant="ghost"
+          className="h-12 w-full rounded-xl text-[15px] font-bold"
+        >
+          Voltar ao site
+        </Button>
+        <SairButton className="h-12 w-full rounded-xl" />
       </div>
     </div>
   );

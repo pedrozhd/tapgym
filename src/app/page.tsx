@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Calendar, Hand, Lock, Target, TrendingUp, Zap } from "lucide-react";
 import LandingHero from "@/components/marketing/landing-hero";
+import { SairButton } from "@/components/auth/sair-button";
+import { createClient } from "@/lib/supabase/server";
 import { PLANO } from "@/lib/pricing";
 
 const PASSOS = [
@@ -18,17 +20,48 @@ const BENEFICIOS = [
   { icon: Lock, titulo: "Seus dados", descricao: "Seu histórico fica com você, sem redes sociais, sem feed, sem distração." },
 ];
 
-export default function LandingPage() {
+const LINK_HEADER =
+  "flex h-10 items-center rounded-full border border-border px-4 text-[13px] font-semibold text-foreground transition-colors hover:border-primary hover:text-primary";
+
+/**
+ * A LP é dinâmica (não mais estática) porque precisa saber se há sessão: o
+ * middleware libera esta página pra quem está logado sem assinatura — é a saída
+ * do paywall que não custa a sessão — e pra esse visitante "Entrar" e "Criar
+ * conta" são convites errados. Ele já entrou e já criou.
+ */
+export default async function LandingPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const logado = user !== null;
+
+  // Quem está logado e chega aqui não tem assinatura (o middleware desvia os
+  // assinantes pro /dashboard), então o destino de compra é o paywall direto,
+  // sem passar pelo /login.
+  const hrefAssinar = logado ? "/assinar" : "/login?modo=criar";
+
   return (
     <div className="bg-background text-foreground">
       <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between px-6 py-5 sm:px-8">
         <span className="text-lg font-bold tracking-tight">TapGym</span>
-        <Link
-          href="/dashboard"
-          className="rounded-full border border-border px-4 py-2 text-[13px] font-semibold text-foreground transition-colors hover:border-primary hover:text-primary"
-        >
-          Entrar
-        </Link>
+        <div className="flex items-center gap-2">
+          {logado ? (
+            <>
+              <Link href="/assinar" className={LINK_HEADER}>
+                Assinar
+              </Link>
+              {/* Sair tem que existir aqui: sem assinatura o usuário só alcança
+                  esta página e o /assinar, então este e o do paywall são os
+                  únicos pontos de saída do app. */}
+              <SairButton redirectTo="/" className="h-10 rounded-full px-4 text-[13px] font-semibold" />
+            </>
+          ) : (
+            <Link href="/login" className={LINK_HEADER}>
+              Entrar
+            </Link>
+          )}
+        </div>
       </header>
 
       <h1 className="sr-only">TapGym — Progressão de carga, sem planilha.</h1>
@@ -89,10 +122,11 @@ export default function LandingPage() {
               ))}
             </ul>
             {/* Visitante anônimo em /assinar é redirecionado pro /login pelo
-                middleware — apontar direto pro /login evita o hop. Depois do
-                signup, o próprio login manda pra /assinar. */}
+                middleware — apontar direto pro /login evita o hop. `modo=criar`
+                abre já no cadastro: quem vem daqui não tem conta ainda. Depois
+                do signup, o próprio login manda pra /assinar. */}
             <Link
-              href="/login"
+              href={hrefAssinar}
               className="mt-8 flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-[15px] font-bold text-primary-foreground transition-transform hover:scale-[1.02]"
             >
               Assinar
@@ -107,13 +141,17 @@ export default function LandingPage() {
             Sua próxima carga máxima começa aqui.
           </h2>
           <p className="mx-auto mt-4 max-w-[40ch] text-[15px] text-muted-foreground">
-            Crie sua conta e registre sua primeira série hoje.
+            {logado
+              ? "Libere o app e registre sua primeira série hoje."
+              : "Crie sua conta e registre sua primeira série hoje."}
           </p>
+          {/* "Criar conta" só pra quem não tem: quem já criou vê a ação que
+              falta de verdade, que é assinar. */}
           <Link
-            href="/login"
+            href={hrefAssinar}
             className="mx-auto mt-8 flex h-12 w-full max-w-xs items-center justify-center rounded-xl bg-primary px-6 text-[15px] font-bold text-primary-foreground transition-transform hover:scale-[1.02]"
           >
-            Criar conta
+            {logado ? "Assinar" : "Criar conta"}
           </Link>
         </div>
       </section>

@@ -8,10 +8,12 @@ export const metadata: Metadata = {
   description: "Progressão de carga com foco em qualidade de execução",
 };
 
+// Sem `maximumScale`: travar o zoom em 1 impede quem precisa ampliar a tela
+// (WCAG 1.4.4). Os inputs já usam text-base/16px, que é o que evita o
+// auto-zoom do iOS ao focar um campo — o motivo usual de travar a escala.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   viewportFit: "cover",
   themeColor: "#08090b",
 };

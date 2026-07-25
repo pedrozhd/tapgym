@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { BlurCommitInput } from "@/components/ui/blur-commit-input";
+import { SairButton } from "@/components/auth/sair-button";
 import { TypographyEyebrow } from "@/components/ui/typography";
 import {
   Sheet,
@@ -23,10 +23,16 @@ interface AccountSheetProps {
   onUpdateNome: (nome: string) => Promise<void>;
 }
 
+interface Perfil {
+  api_token: string | null;
+  stripe_customer_id: string | null;
+  is_legacy_free: boolean;
+}
+
 export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: AccountSheetProps) {
-  const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
+  const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [copiado, setCopiado] = useState(false);
+  const [erroCopia, setErroCopia] = useState(false);
   const [erroNome, setErroNome] = useState<string | null>(null);
 
   async function onCommitNome(novoNome: string) {
@@ -42,23 +48,26 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
     if (!open) return;
     createClient()
       .from("profiles")
-      .select("api_token")
+      .select("api_token, stripe_customer_id, is_legacy_free")
       .single()
-      .then(({ data }) => setToken(data?.api_token ?? null));
+      .then(({ data }) => setPerfil(data ?? null));
   }, [open]);
+
+  const token = perfil?.api_token ?? null;
 
   async function onCopiar() {
     if (!token) return;
-    await navigator.clipboard.writeText(token);
+    setErroCopia(false);
+    try {
+      await navigator.clipboard.writeText(token);
+    } catch {
+      // Safari nega a área de transferência fora de contexto seguro / sem
+      // gesto direto — sem este catch a promise rejeitava sem ninguém saber.
+      setErroCopia(true);
+      return;
+    }
     setCopiado(true);
     window.setTimeout(() => setCopiado(false), 1500);
-  }
-
-  async function onSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.replace("/login");
-    router.refresh();
   }
 
   return (
@@ -82,31 +91,43 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
 
         <div className="flex flex-col gap-2 px-4">
           <TypographyEyebrow>TOKEN DO SHORTCUT</TypographyEyebrow>
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
             <span className="flex-1 truncate font-mono text-xs text-muted-foreground">
               {token ?? "Carregando..."}
             </span>
             <Button
               variant="outline"
-              size="sm"
               onClick={onCopiar}
               disabled={!token}
-              className="h-8 shrink-0 rounded-lg"
+              className="h-11 shrink-0 rounded-lg px-3"
             >
               {copiado ? "Copiado!" : "Copiar"}
             </Button>
           </div>
+          {erroCopia && (
+            <p className="text-xs text-destructive">
+              Não deu pra copiar — toque no token e copie manualmente.
+            </p>
+          )}
         </div>
 
         <SheetFooter>
-          <form action="/api/stripe/portal" method="POST">
-            <Button type="submit" variant="outline" className="h-11 w-full rounded-xl">
-              Gerenciar assinatura
-            </Button>
-          </form>
-          <Button variant="outline" onClick={onSignOut} className="h-11 rounded-xl">
-            Sair
-          </Button>
+          {/* Só quem passou pelo Stripe tem portal pra abrir. Antes o botão
+              aparecia pra todos: sem `stripe_customer_id` a rota redireciona
+              pra /assinar, o middleware devolve pro /dashboard e o toque não
+              produzia nada visível. */}
+          {perfil?.stripe_customer_id ? (
+            <form action="/api/stripe/portal" method="POST">
+              <Button type="submit" variant="outline" className="h-11 w-full rounded-xl">
+                Gerenciar assinatura
+              </Button>
+            </form>
+          ) : perfil?.is_legacy_free ? (
+            <p className="px-1 text-center text-xs text-muted-foreground">
+              Seu acesso é gratuito e vitalício — não há assinatura pra gerenciar.
+            </p>
+          ) : null}
+          <SairButton className="h-11 w-full rounded-xl" />
         </SheetFooter>
       </SheetContent>
     </Sheet>

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, Pencil } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,25 +74,28 @@ export default function RegistroPage() {
     setReps((r) => r + 1);
   }
 
-  const podeSalvar = Boolean(curEx) && carga > 0 && reps > 0 && qualidade !== null;
-
-  async function onRemoverSerie(serieId: string) {
-    if (!window.confirm("Apagar essa série? Não dá pra desfazer.")) return;
-    try {
-      await removeSerie(serieId);
-    } catch {
-      mostrarToast("Não deu pra apagar — tenta de novo");
-    }
-  }
+  // `salvando` existe pra bloquear o segundo toque: `addSerie` é assíncrono e,
+  // sem isso, dois toques em rede ruim gravavam duas séries iguais.
+  const [salvando, setSalvando] = useState(false);
+  const faltando = [
+    carga <= 0 ? "a carga" : null,
+    reps <= 0 ? "as repetições" : null,
+    qualidade === null ? "a qualidade" : null,
+  ].filter((item): item is string => item !== null);
+  const camposFaltando = Boolean(curEx) && faltando.length > 0;
+  const podeSalvar = Boolean(curEx) && !salvando && carga > 0 && reps > 0 && qualidade !== null;
 
   async function onSave() {
     if (!curEx || !podeSalvar || !qualidade) return;
+    setSalvando(true);
     try {
       await addSerie(curEx.exercicio_id, carga, reps, qualidade);
       setReps(0);
       mostrarToast("Série salva ✓");
     } catch {
       mostrarToast("Não deu pra salvar — tenta de novo");
+    } finally {
+      setSalvando(false);
     }
   }
 
@@ -193,32 +196,24 @@ export default function RegistroPage() {
 
         {setsDeHoje.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-muted-foreground/70">Séries de hoje:</span>
+            <span className="text-xs font-semibold text-muted-foreground">Séries de hoje:</span>
+            {/* A pílula inteira é o alvo de toque e abre a edição (que também
+                apaga). Antes havia dois botões de ícone de 11 e 12px colados
+                um no outro dentro dela — o de apagar era destrutivo e ficava a
+                4px do de editar. */}
             <div className="flex flex-wrap items-center gap-2">
               {setsDeHoje.map((s, i) => (
-                <span
+                <button
                   key={s.id}
-                  className="flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground"
+                  type="button"
+                  onClick={() => setSerieEditando(s)}
+                  aria-label={`Editar série ${i + 1}: ${formatCarga(s.carga)} kg por ${s.reps} repetições`}
+                  className="flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-xs text-muted-foreground active:opacity-70"
                 >
                   Série {i + 1}: {formatCarga(s.carga)}kg × {s.reps}
                   <QualidadeIcon qualidade={s.qualidade} size={12} />
-                  <button
-                    type="button"
-                    onClick={() => setSerieEditando(s)}
-                    aria-label="Editar série"
-                    className="text-muted-foreground/60 active:opacity-60"
-                  >
-                    <Pencil size={11} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onRemoverSerie(s.id)}
-                    aria-label="Apagar série"
-                    className="text-muted-foreground/60 active:opacity-60"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </span>
+                  <Pencil size={12} className="text-muted-foreground" aria-hidden="true" />
+                </button>
               ))}
             </div>
           </div>
@@ -237,8 +232,15 @@ export default function RegistroPage() {
             disabled={!podeSalvar}
             className="h-[60px] w-full rounded-2xl text-[17px] font-bold"
           >
-            Salvar série
+            {salvando ? "Salvando..." : "Salvar série"}
           </Button>
+          {/* Botão desabilitado sem motivo visível fazia o usuário adivinhar o
+              que faltava — quase sempre a qualidade, que fica acima da dobra. */}
+          {camposFaltando && !salvando && (
+            <p className="mt-2 text-center text-[13px] text-muted-foreground">
+              Falta informar {faltando.join(" e ")}.
+            </p>
+          )}
         </div>
       </main>
 
@@ -248,6 +250,7 @@ export default function RegistroPage() {
         serie={serieEditando}
         onOpenChange={(open) => !open && setSerieEditando(null)}
         onSave={(serieId, carga, reps, qualidade) => updateSerie(serieId, carga, reps, qualidade)}
+        onDelete={removeSerie}
       />
     </>
   );
