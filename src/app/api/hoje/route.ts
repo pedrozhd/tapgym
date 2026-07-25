@@ -1,13 +1,23 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { COLUNAS_ACESSO, temAcesso, type PerfilAcesso } from "@/lib/acesso";
 import { getTreinoDeHoje, getUltimaSerie } from "@/lib/dashboard";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
 import type { Exercicio, Serie, Treino, TreinoExercicio } from "@/lib/types";
 
-async function resolveUserId(admin: ReturnType<typeof createAdminClient>, token: string | null): Promise<string | null> {
+type PerfilToken = PerfilAcesso & { id: string };
+
+async function resolvePerfil(
+  admin: ReturnType<typeof createAdminClient>,
+  token: string | null,
+): Promise<PerfilToken | null> {
   if (!token) return null;
-  const { data } = await admin.from("profiles").select("id").eq("api_token", token).maybeSingle();
-  return data?.id ?? null;
+  const { data } = await admin
+    .from("profiles")
+    .select(`id, ${COLUNAS_ACESSO}`)
+    .eq("api_token", token)
+    .maybeSingle();
+  return (data as PerfilToken | null) ?? null;
 }
 
 /**
@@ -23,11 +33,20 @@ export async function GET(request: NextRequest) {
 
   const token = request.nextUrl.searchParams.get("token");
   const admin = createAdminClient();
-  const userId = await resolveUserId(admin, token);
+  const perfil = await resolvePerfil(admin, token);
 
-  if (!userId) {
+  if (!perfil) {
     return NextResponse.json({ error: "token inválido" }, { status: 401 });
   }
+
+  // Esta rota não passa pelo middleware (nem por RLS, por usar a service role
+  // key), então o paywall precisa ser checado aqui — senão o atalho continua
+  // funcionando depois de a assinatura ser cancelada ou ficar em atraso.
+  if (!temAcesso(perfil)) {
+    return NextResponse.json({ error: "assinatura inativa — reative no app" }, { status: 402 });
+  }
+
+  const userId = perfil.id;
 
   const { data: treinos } = await admin.from("treinos").select("*").eq("user_id", userId);
   if (!treinos || treinos.length === 0) {

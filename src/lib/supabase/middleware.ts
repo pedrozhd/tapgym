@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { COLUNAS_ACESSO, temAcesso } from "@/lib/acesso";
 
 /** Refreshes the Supabase session cookie on every request and gates the app routes behind auth e assinatura. */
 export async function updateSession(request: NextRequest) {
@@ -54,27 +55,26 @@ export async function updateSession(request: NextRequest) {
     return redirectPreservingSession("/login");
   }
 
-  // Quem já tem conta não precisa ver a LP ou a tela de login de novo — manda
-  // direto pra Dashboard.
-  if (user && (isAuthRoute || isLandingPage)) {
-    return redirectPreservingSession("/dashboard");
-  }
-
-  if (user && !isAuthRoute && !isLandingPage) {
+  if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_legacy_free, subscription_status")
+      .select(COLUNAS_ACESSO)
       .eq("id", user.id)
       .maybeSingle();
 
-    const temAcesso = profile?.is_legacy_free || profile?.subscription_status === "active";
+    const acesso = temAcesso(profile);
 
-    if (!temAcesso && !isAssinarRoute) {
-      return redirectPreservingSession("/assinar");
+    // Quem já tem acesso não precisa ver LP, login nem paywall de novo.
+    if (acesso && (isAuthRoute || isLandingPage || isAssinarRoute)) {
+      return redirectPreservingSession("/dashboard");
     }
 
-    if (temAcesso && isAssinarRoute) {
-      return redirectPreservingSession("/dashboard");
+    // Sem assinatura, o app fica bloqueado — mas a LP é liberada de propósito:
+    // é a saída do paywall que NÃO custa a sessão. Antes ela também caía no
+    // /assinar, então o único jeito de sair daquela tela era deslogar, e quem
+    // tinha acabado de criar a conta era obrigado a entrar outra vez.
+    if (!acesso && !isAssinarRoute && !isLandingPage) {
+      return redirectPreservingSession("/assinar");
     }
   }
 

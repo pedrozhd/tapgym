@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { COLUNAS_ACESSO, temAcesso, type PerfilAcesso } from "@/lib/acesso";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
 import type { Qualidade } from "@/lib/types";
 
@@ -50,9 +51,20 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = createAdminClient();
-  const { data: profile } = await admin.from("profiles").select("id").eq("api_token", body.token).maybeSingle();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select(`id, ${COLUNAS_ACESSO}`)
+    .eq("api_token", body.token)
+    .maybeSingle<PerfilAcesso & { id: string }>();
   if (!profile) {
     return NextResponse.json({ error: "token inválido" }, { status: 401 });
+  }
+
+  // Esta rota não passa pelo middleware (nem por RLS, por usar a service role
+  // key), então o paywall precisa ser checado aqui — senão o atalho continua
+  // gravando séries depois de a assinatura ser cancelada ou ficar em atraso.
+  if (!temAcesso(profile)) {
+    return NextResponse.json({ error: "assinatura inativa — reative no app" }, { status: 402 });
   }
 
   const { data: exercicio } = await admin

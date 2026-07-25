@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { COLUNAS_ACESSO, temAcesso } from "@/lib/acesso";
 import { getStripe } from "@/lib/stripe";
 
 export async function POST(request: Request) {
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("stripe_customer_id, is_legacy_free, subscription_status")
+    .select(`stripe_customer_id, ${COLUNAS_ACESSO}`)
     .eq("id", user.id)
     .maybeSingle();
 
@@ -23,10 +24,8 @@ export async function POST(request: Request) {
   // Evita criar uma segunda assinatura/customer no Stripe quando o usuário já
   // tem acesso (ex.: acabou de pagar e o webhook `checkout.session.completed`
   // ainda não gravou `subscription_status = "active"` a tempo do middleware
-  // liberar `/dashboard`). Mesma checagem usada em `src/lib/supabase/middleware.ts`.
-  const temAcesso = profile?.is_legacy_free || profile?.subscription_status === "active";
-
-  if (temAcesso) {
+  // liberar `/dashboard`). A regra vive em `src/lib/acesso.ts`.
+  if (temAcesso(profile)) {
     return NextResponse.redirect(`${origin}/dashboard`, { status: 303 });
   }
 
