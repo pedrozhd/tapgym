@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { PLANO } from "@/lib/pricing";
 
 export default function AssinarPage() {
   return (
@@ -9,9 +10,18 @@ export default function AssinarPage() {
       </div>
 
       <div className="shadow-soft-elevated rounded-2xl bg-card p-6 text-center">
-        <p className="text-[13px] text-muted-foreground">Plano mensal</p>
-        <p className="mt-1 text-4xl font-extrabold tracking-tight">R$ 19,90</p>
-        <p className="text-[13px] text-muted-foreground">por mês</p>
+        <p className="text-[13px] text-muted-foreground">Plano {PLANO.nome.toLowerCase()}</p>
+        <p className="mt-1 text-4xl font-extrabold tracking-tight">{PLANO.preco}</p>
+        <p className="text-[13px] text-muted-foreground">{PLANO.periodo}</p>
+
+        <ul className="mt-5 flex flex-col gap-2 text-left text-[14px]">
+          {PLANO.beneficios.map((item) => (
+            <li key={item} className="flex items-start gap-2">
+              <span className="text-primary" aria-hidden="true">✓</span>
+              {item}
+            </li>
+          ))}
+        </ul>
 
         <form action="/api/stripe/checkout" method="POST" className="mt-6">
           <Button type="submit" className="h-12 w-full rounded-xl text-[15px] font-bold">

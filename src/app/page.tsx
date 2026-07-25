@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Calendar, Hand, Lock, Target, TrendingUp, Zap } from "lucide-react";
-import { WaitlistForm } from "@/components/marketing/waitlist-form";
 import LandingHero from "@/components/marketing/landing-hero";
+import { PLANO } from "@/lib/pricing";
 
 const PASSOS = [
   { numero: "1", titulo: "Monte seu treino", descricao: "Estruture seus dias e exercícios do seu jeito, sem modelos fixos." },
@@ -16,13 +16,6 @@ const BENEFICIOS = [
   { icon: Target, titulo: "Qualidade da série", descricao: "Marque se a série foi boa, razoável ou ruim: contexto que a carga sozinha não dá." },
   { icon: Zap, titulo: "Rápido de verdade", descricao: "Registrar uma série leva menos tempo do que descansar entre elas." },
   { icon: Lock, titulo: "Seus dados", descricao: "Seu histórico fica com você, sem redes sociais, sem feed, sem distração." },
-];
-
-const BENEFICIOS_BETA = [
-  "Registro ilimitado de séries",
-  "Histórico e gráficos por exercício",
-  "Treinos e dias sem limite",
-  "Acesso antecipado a novidades",
 ];
 
 export default function LandingPage() {
@@ -82,38 +75,46 @@ export default function LandingPage() {
       <section className="border-t border-border">
         <div className="mx-auto max-w-6xl px-6 py-20 text-center md:py-28">
           <p className="text-[12px] font-bold tracking-[0.14em] text-primary uppercase">Preço</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Grátis durante o beta.</h2>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Um plano. Sem pegadinha.</h2>
           <div className="mx-auto mt-12 max-w-md rounded-2xl border border-border bg-card p-8 text-left">
-            <p className="text-[12px] font-bold tracking-[0.14em] text-primary uppercase">Beta</p>
-            <p className="mt-2 text-5xl font-bold tracking-tight">R$ 0</p>
-            <p className="mt-1 text-[14px] text-muted-foreground">enquanto durar o beta fechado</p>
+            <p className="text-[12px] font-bold tracking-[0.14em] text-primary uppercase">{PLANO.nome}</p>
+            <p className="mt-2 text-5xl font-bold tracking-tight">{PLANO.preco}</p>
+            <p className="mt-1 text-[14px] text-muted-foreground">{PLANO.periodo}</p>
             <ul className="mt-6 flex flex-col gap-2.5 text-[14px]">
-              {BENEFICIOS_BETA.map((item) => (
+              {PLANO.beneficios.map((item) => (
                 <li key={item} className="flex items-start gap-2">
                   <span className="text-primary" aria-hidden="true">✓</span>
                   {item}
                 </li>
               ))}
             </ul>
-            <a
-              href="#waitlist"
+            {/* Visitante anônimo em /assinar é redirecionado pro /login pelo
+                middleware — apontar direto pro /login evita o hop. Depois do
+                signup, o próprio login manda pra /assinar. */}
+            <Link
+              href="/login"
               className="mt-8 flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-[15px] font-bold text-primary-foreground transition-transform hover:scale-[1.02]"
             >
-              Garantir acesso ao beta
-            </a>
+              Assinar
+            </Link>
           </div>
         </div>
       </section>
 
-      <section id="waitlist" className="scroll-mt-6 border-t border-border">
+      <section className="border-t border-border">
         <div className="mx-auto max-w-6xl px-6 py-20 text-center md:py-28">
           <h2 className="mx-auto max-w-[26ch] text-3xl font-bold tracking-tight sm:text-4xl">
             Sua próxima carga máxima começa aqui.
           </h2>
           <p className="mx-auto mt-4 max-w-[40ch] text-[15px] text-muted-foreground">
-            Entre na lista e seja avisado assim que o TapGym abrir.
+            Crie sua conta e registre sua primeira série hoje.
           </p>
-          <WaitlistForm className="mx-auto mt-8 max-w-md" helperText="Sem spam. Um único e-mail quando o app abrir." />
+          <Link
+            href="/login"
+            className="mx-auto mt-8 flex h-12 w-full max-w-xs items-center justify-center rounded-xl bg-primary px-6 text-[15px] font-bold text-primary-foreground transition-transform hover:scale-[1.02]"
+          >
+            Criar conta
+          </Link>
         </div>
       </section>
 

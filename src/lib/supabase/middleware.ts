@@ -54,8 +54,8 @@ export async function updateSession(request: NextRequest) {
     return redirectPreservingSession("/login");
   }
 
-  // Quem já tem conta não precisa ver a LP/waitlist ou a tela de login de
-  // novo — manda direto pra Dashboard.
+  // Quem já tem conta não precisa ver a LP ou a tela de login de novo — manda
+  // direto pra Dashboard.
   if (user && (isAuthRoute || isLandingPage)) {
     return redirectPreservingSession("/dashboard");
   }

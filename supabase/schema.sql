@@ -168,19 +168,3 @@ create policy "profiles: owner can update own name"
 
 revoke update on public.profiles from authenticated;
 grant update (nome) on public.profiles to authenticated;
-
--- waitlist ----------------------------------------------------------------
--- Captura de e-mail na LP, antes do beta abrir. Insert público via anon key;
--- sem policy de select, ninguém além do service role consegue listar.
-create table if not exists public.waitlist (
-  id uuid primary key default gen_random_uuid(),
-  email text unique not null,
-  created_at timestamptz not null default now()
-);
-
-alter table public.waitlist enable row level security;
-
-create policy "waitlist: anyone can join"
-  on public.waitlist for insert
-  to anon, authenticated
-  with check (true);
