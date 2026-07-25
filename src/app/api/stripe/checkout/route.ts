@@ -14,11 +14,22 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("stripe_customer_id")
+    .select("stripe_customer_id, is_legacy_free, subscription_status")
     .eq("id", user.id)
     .maybeSingle();
 
   const origin = new URL(request.url).origin;
+
+  // Evita criar uma segunda assinatura/customer no Stripe quando o usuário já
+  // tem acesso (ex.: acabou de pagar e o webhook `checkout.session.completed`
+  // ainda não gravou `subscription_status = "active"` a tempo do middleware
+  // liberar `/dashboard`). Mesma checagem usada em `src/lib/supabase/middleware.ts`.
+  const temAcesso = profile?.is_legacy_free || profile?.subscription_status === "active";
+
+  if (temAcesso) {
+    return NextResponse.redirect(`${origin}/dashboard`, { status: 303 });
+  }
+
   const stripe = getStripe();
 
   const session = await stripe.checkout.sessions.create({
