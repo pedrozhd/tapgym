@@ -94,7 +94,23 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, nome) values (new.id, new.raw_user_meta_data ->> 'nome');
+  -- `nome` vem do nosso formulário; `full_name`/`name` vêm dos providers OAuth
+  -- (Google). nullif(trim(...)) evita que metadata vazia vire um nome.
+  insert into public.profiles (id, nome)
+  values (
+    new.id,
+    nullif(
+      trim(
+        coalesce(
+          new.raw_user_meta_data ->> 'nome',
+          new.raw_user_meta_data ->> 'full_name',
+          new.raw_user_meta_data ->> 'name',
+          ''
+        )
+      ),
+      ''
+    )
+  );
   return new;
 end;
 $$;
