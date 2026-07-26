@@ -29,6 +29,8 @@ interface AppStoreValue extends AppDb {
   loading: boolean;
   userEmail: string | null;
   nome: string | null;
+  /** Fim do teste gratuito (ISO), ou null pra quem é isento, pagante, ou já venceu. */
+  trialEndsAt: string | null;
   addSerie: (exercicioId: string, carga: number, reps: number, qualidade: Qualidade) => Promise<void>;
   updateSerie: (serieId: string, carga: number, reps: number, qualidade: Qualidade) => Promise<void>;
   removeSerie: (serieId: string) => Promise<void>;
@@ -59,6 +61,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [nome, setNome] = useState<string | null>(null);
+  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -78,7 +81,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       supabase.from("exercicios").select("*"),
       supabase.from("treino_exercicios").select("*").order("ordem"),
       supabase.from("series").select("*").order("data"),
-      supabase.from("profiles").select("nome").single(),
+      supabase.from("profiles").select("nome, trial_ends_at").single(),
     ]);
     setDb({
       treinos: treinosRes.data ?? [],
@@ -87,6 +90,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       series: seriesRes.data ?? [],
     });
     setNome(profileRes.data?.nome ?? null);
+    setTrialEndsAt(profileRes.data?.trial_ends_at ?? null);
     setLoading(false);
   }, [supabase]);
 
@@ -103,6 +107,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       loading,
       userEmail,
       nome,
+      trialEndsAt,
 
       async addSerie(exercicioId, carga, reps, qualidade) {
         await supabase.from("series").insert({ exercicio_id: exercicioId, carga, reps, qualidade }).throwOnError();
@@ -272,7 +277,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
       refresh,
     }),
-    [db, loading, userEmail, nome, userId, refresh, supabase],
+    [db, loading, userEmail, nome, trialEndsAt, userId, refresh, supabase],
   );
 
   return <AppStoreContext.Provider value={value}>{children}</AppStoreContext.Provider>;

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppHeader } from "@/components/layout/app-header";
 import { AccountSheet } from "@/components/layout/account-sheet";
 import { AtalhoCard } from "@/components/dashboard/atalho-card";
+import { TrialAviso } from "@/components/dashboard/trial-aviso";
 import { Button } from "@/components/ui/button";
 import { ExercicioEmFocoCard } from "@/components/dashboard/exercicio-em-foco-card";
 import { ExercicioGrid } from "@/components/dashboard/exercicio-grid";
@@ -40,6 +41,11 @@ export default function DashboardPage() {
           na borda deste container com overflow — sem esse respiro, o brilho é
           cortado em vez de esmaecer, e a aresta dura parece colada no header. */}
       <main className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 pt-6 pb-6">
+        {/* Fora do bloco condicional abaixo de propósito: o prazo corre mesmo
+            para quem ainda não cadastrou treino nenhum, e é justamente quem mais
+            precisa saber que o relógio está andando. */}
+        <TrialAviso />
+
         {loading ? (
           <TypographyMuted className="flex-1 py-10 text-center">Carregando...</TypographyMuted>
         ) : treinos.length === 0 ? (
