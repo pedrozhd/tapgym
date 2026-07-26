@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Calendar, Hand, Lock, Target, TrendingUp, Zap } from "lucide-react";
 import LandingHero from "@/components/marketing/landing-hero";
 import { SairButton } from "@/components/auth/sair-button";
@@ -29,7 +30,22 @@ const LINK_HEADER =
  * do paywall que não custa a sessão — e pra esse visitante "Entrar" e "Criar
  * conta" são convites errados. Ele já entrou e já criou.
  */
-export default async function LandingPage() {
+export default async function LandingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string }>;
+}) {
+  // Rede de segurança para `code` que aterrissa na raiz em vez do
+  // /auth/callback. Acontece quando o Supabase descarta o `redirectTo` (valor
+  // fora da allowlist de Redirect URLs) e cai no fallback, que é a RAIZ do Site
+  // URL — e também nos templates de e-mail, que usam o Site URL como base.
+  // Sem isto o código se perde em silêncio: a página carrega normalmente e
+  // nenhuma sessão é criada.
+  const { code } = await searchParams;
+  if (code) {
+    redirect(`/auth/callback?code=${encodeURIComponent(code)}`);
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

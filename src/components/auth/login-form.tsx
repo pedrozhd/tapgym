@@ -27,6 +27,24 @@ function traduzErro(msg: string): string {
   if (msg.includes("For security purposes") || msg.includes("rate limit")) {
     return "Muitas tentativas seguidas. Espere um minuto e tente de novo.";
   }
+  // Provider de e-mail desligado no Supabase (`Enable email provider`), ou
+  // cadastro por e-mail bloqueado. Estado alcançável por configuração errada —
+  // já aconteceu — e o texto cru vazava em inglês na tela.
+  if (msg.includes("logins are disabled") || msg.includes("Signups not allowed") || msg.includes("signups are disabled")) {
+    return "O acesso por e-mail e senha está desativado. Use “Continuar com Google”.";
+  }
+  // Falha no envio do e-mail de confirmação (SMTP fora do ar, domínio não
+  // verificado, remetente recusado): o GoTrue responde com corpo vazio e o
+  // supabase-js repassa isso como `message`, então "{}" chegava na tela.
+  if (msg.includes("Error sending") || msg.includes("unexpected_failure")) {
+    return "Não deu pra enviar o e-mail de confirmação. Use “Continuar com Google” — ou tente de novo em alguns minutos.";
+  }
+  // Rede de segurança: qualquer mensagem que não seja texto legível (JSON,
+  // vazia) vira uma frase util em vez de ser despejada crua.
+  const limpo = msg.trim();
+  if (limpo === "" || limpo.startsWith("{") || limpo.startsWith("[")) {
+    return "Não deu pra criar a conta agora. Use “Continuar com Google” — ou tente de novo em alguns minutos.";
+  }
   return msg;
 }
 
@@ -80,6 +98,10 @@ export function LoginForm({ modoInicial }: { modoInicial: Modo }) {
     });
     setCarregando(false);
     if (error) {
+      // `status`/`code` não aparecem na tela mas são o que identifica a causa
+      // (ex.: 500 + unexpected_failure = falha de SMTP no envio) quando a
+      // `message` vem vazia. Sem isto, o diagnóstico depende do log do Supabase.
+      console.error("signUp falhou", { status: error.status, code: error.code, message: error.message });
       setErro(traduzErro(error.message));
       return;
     }
