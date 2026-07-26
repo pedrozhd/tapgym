@@ -64,7 +64,15 @@ export async function POST(request: NextRequest) {
   // key), então o paywall precisa ser checado aqui — senão o atalho continua
   // gravando séries depois de a assinatura ser cancelada ou ficar em atraso.
   if (!temAcesso(profile)) {
-    return NextResponse.json({ error: "assinatura inativa — reative no app" }, { status: 402 });
+    return NextResponse.json({ error: "assinatura inativa, reative no app" }, { status: 402 });
+  }
+
+  // Segunda cota, agora pelo token. A de cima é por IP, e um token compartilhado
+  // entre pessoas em redes diferentes ganharia uma cota independente para cada
+  // uma. Limitando o token, quem compartilha divide a mesma cota.
+  const porToken = await checkRateLimit(`token:${profile.id}`);
+  if (!porToken.success) {
+    return NextResponse.json({ error: "muitas requisições, tente novamente em instantes" }, { status: 429 });
   }
 
   const { data: exercicio } = await admin

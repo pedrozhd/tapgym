@@ -46,7 +46,7 @@ export function EditarSerieDialog({ serie, onOpenChange, onSave, onDelete }: Edi
       await onSave(serie.id, carga, reps, qualidade);
       onOpenChange(false);
     } catch {
-      setErro("Não deu pra salvar — tenta de novo.");
+      setErro("Não deu pra salvar. Tenta de novo.");
     } finally {
       setSalvando(false);
     }
@@ -60,7 +60,7 @@ export function EditarSerieDialog({ serie, onOpenChange, onSave, onDelete }: Edi
       await onDelete(serie.id);
       onOpenChange(false);
     } catch {
-      setErro("Não deu pra apagar — tenta de novo.");
+      setErro("Não deu pra apagar. Tenta de novo.");
       setConfirmandoExclusao(false);
     } finally {
       setApagando(false);

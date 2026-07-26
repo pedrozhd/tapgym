@@ -50,7 +50,7 @@ export function GoogleButton({ onErro }: { onErro: (msg: string) => void }) {
     // é descartado — só chega aqui se falhou (provider desabilitado, rede etc).
     if (error) {
       setCarregando(false);
-      onErro("Não deu pra abrir o login do Google — tenta de novo.");
+      onErro("Não deu pra abrir o login do Google. Tenta de novo.");
     }
   }
 

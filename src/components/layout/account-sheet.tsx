@@ -14,6 +14,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { createClient } from "@/lib/supabase/client";
+import { diasRestantesTrial } from "@/lib/acesso";
 
 interface AccountSheetProps {
   open: boolean;
@@ -27,6 +28,7 @@ interface Perfil {
   api_token: string | null;
   stripe_customer_id: string | null;
   is_legacy_free: boolean;
+  trial_ends_at: string | null;
 }
 
 export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: AccountSheetProps) {
@@ -34,13 +36,16 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
   const [copiado, setCopiado] = useState(false);
   const [erroCopia, setErroCopia] = useState(false);
   const [erroNome, setErroNome] = useState<string | null>(null);
+  const [confirmandoRotacao, setConfirmandoRotacao] = useState(false);
+  const [rotacionando, setRotacionando] = useState(false);
+  const [erroRotacao, setErroRotacao] = useState<string | null>(null);
 
   async function onCommitNome(novoNome: string) {
     setErroNome(null);
     try {
       await onUpdateNome(novoNome);
     } catch {
-      setErroNome("Não deu pra salvar o nome — tenta de novo.");
+      setErroNome("Não deu pra salvar o nome. Tenta de novo.");
     }
   }
 
@@ -48,7 +53,7 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
     if (!open) return;
     createClient()
       .from("profiles")
-      .select("api_token, stripe_customer_id, is_legacy_free")
+      .select("api_token, stripe_customer_id, is_legacy_free, trial_ends_at")
       .single()
       .then(({ data }) => setPerfil(data ?? null));
   }, [open]);
@@ -70,12 +75,28 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
     window.setTimeout(() => setCopiado(false), 1500);
   }
 
+  async function onRotacionar() {
+    setErroRotacao(null);
+    setRotacionando(true);
+    try {
+      const resposta = await fetch("/api/token/rotate", { method: "POST" });
+      if (!resposta.ok) throw new Error("falhou");
+      const { api_token } = (await resposta.json()) as { api_token: string };
+      setPerfil((p) => (p ? { ...p, api_token } : p));
+      setConfirmandoRotacao(false);
+    } catch {
+      setErroRotacao("Não deu pra gerar um novo token. Tenta de novo.");
+    } finally {
+      setRotacionando(false);
+    }
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="mx-auto w-full max-w-[430px] rounded-t-2xl border-border bg-card">
         <SheetHeader>
           <SheetTitle>Conta</SheetTitle>
-          <SheetDescription>{email ?? "—"}</SheetDescription>
+          <SheetDescription>{email ?? "Sem e-mail"}</SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-col gap-2 px-4">
@@ -106,8 +127,48 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
           </div>
           {erroCopia && (
             <p className="text-xs text-destructive">
-              Não deu pra copiar — toque no token e copie manualmente.
+              Não deu pra copiar. Toque no token e copie manualmente.
             </p>
+          )}
+          {erroRotacao && <p className="text-xs text-destructive">{erroRotacao}</p>}
+
+          {/* Revogação. O token vale acesso pago, e antes disto um token
+              compartilhado ou vazado era permanente: a coluna tem default no
+              banco e a tela só mostrava e copiava. */}
+          {confirmandoRotacao ? (
+            <div className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3">
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                O token atual para de funcionar na hora. Você vai precisar colar o novo no atalho do iPhone,
+                senão ele deixa de registrar.
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setConfirmandoRotacao(false)}
+                  disabled={rotacionando}
+                  className="h-11 flex-1 rounded-lg"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={onRotacionar}
+                  disabled={rotacionando}
+                  className="h-11 flex-1 rounded-lg font-bold"
+                >
+                  {rotacionando ? "Gerando..." : "Gerar"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmandoRotacao(true)}
+              disabled={!token}
+              className="h-11 w-full rounded-lg text-[13px]"
+            >
+              Gerar novo token
+            </Button>
           )}
         </div>
 
@@ -116,6 +177,16 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
               aparecia pra todos: sem `stripe_customer_id` a rota redireciona
               pra /assinar, o middleware devolve pro /dashboard e o toque não
               produzia nada visível. */}
+          {/* O teste vence em silêncio se ninguém avisar: no oitavo dia o app
+              tranca sem nenhum aviso prévio. Este contador é o mínimo. */}
+          {diasRestantesTrial(perfil) > 0 && (
+            <p className="px-1 text-center text-xs text-muted-foreground">
+              {diasRestantesTrial(perfil) === 1
+                ? "Último dia do seu teste gratuito."
+                : `Teste gratuito: ${diasRestantesTrial(perfil)} dias restantes.`}
+            </p>
+          )}
+
           {perfil?.stripe_customer_id ? (
             <form action="/api/stripe/portal" method="POST">
               <Button type="submit" variant="outline" className="h-11 w-full rounded-xl">
@@ -124,7 +195,7 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
             </form>
           ) : perfil?.is_legacy_free ? (
             <p className="px-1 text-center text-xs text-muted-foreground">
-              Seu acesso é gratuito e vitalício — não há assinatura pra gerenciar.
+              Seu acesso é gratuito e vitalício. Não há assinatura pra gerenciar.
             </p>
           ) : null}
           <SairButton className="h-11 w-full rounded-xl" />

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { AppHeader } from "@/components/layout/app-header";
 import { AccountSheet } from "@/components/layout/account-sheet";
+import { AtalhoCard } from "@/components/dashboard/atalho-card";
 import { Button } from "@/components/ui/button";
 import { ExercicioEmFocoCard } from "@/components/dashboard/exercicio-em-foco-card";
 import { ExercicioGrid } from "@/components/dashboard/exercicio-grid";
@@ -56,6 +57,12 @@ export default function DashboardPage() {
             const dashboard = getDashboardData(treinos, treinoExercicios, exercicios, series);
             return (
               <>
+                {/* Antes de tudo, mas só depois de existir treino: o atalho
+                    depende de um treino com semana definida pra achar o treino
+                    de hoje. O card se esconde sozinho fora do iOS e quando
+                    dispensado. */}
+                <AtalhoCard />
+
                 {dashboard.treino ? (
                   <>
                     <TreinoDeHojeCard treino={dashboard.treino} />

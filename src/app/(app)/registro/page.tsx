@@ -93,7 +93,7 @@ export default function RegistroPage() {
       setReps(0);
       mostrarToast("Série salva ✓");
     } catch {
-      mostrarToast("Não deu pra salvar — tenta de novo");
+      mostrarToast("Não deu pra salvar. Tenta de novo");
     } finally {
       setSalvando(false);
     }
@@ -190,7 +190,7 @@ export default function RegistroPage() {
 
         {sugereProgressao && (
           <p className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-[13px] font-medium text-success">
-            Bateu o topo da faixa com boa qualidade — na próxima sessão, suba a carga.
+            Bateu o topo da faixa com boa qualidade. Na próxima sessão, suba a carga.
           </p>
         )}
 

@@ -31,7 +31,7 @@ export function RemoverExercicioDialog({
           <DialogTitle>Remover {nomeExercicio || "exercício"}?</DialogTitle>
           <DialogDescription className="leading-relaxed">
             <strong className="text-foreground">Desvincular</strong> tira o exercício deste treino, mas guarda o
-            histórico de séries — dá pra adicionar de volta depois sem perder o progresso registrado.{" "}
+            histórico de séries. Dá pra adicionar de volta depois sem perder o progresso registrado.{" "}
             <strong className="text-foreground">Apagar completamente</strong> exclui o exercício e todo o
             histórico de séries dele, sem volta.
           </DialogDescription>
