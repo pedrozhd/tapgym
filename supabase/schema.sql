@@ -84,7 +84,9 @@ create table if not exists public.profiles (
   stripe_customer_id text,
   stripe_subscription_id text,
   subscription_status text,
-  is_legacy_free boolean not null default false
+  is_legacy_free boolean not null default false,
+  -- Teste de 7 dias, preenchido pelo trigger abaixo em contas novas.
+  trial_ends_at timestamptz
 );
 
 create or replace function public.handle_new_user()
@@ -96,7 +98,7 @@ as $$
 begin
   -- `nome` vem do nosso formulário; `full_name`/`name` vêm dos providers OAuth
   -- (Google). nullif(trim(...)) evita que metadata vazia vire um nome.
-  insert into public.profiles (id, nome)
+  insert into public.profiles (id, nome, trial_ends_at)
   values (
     new.id,
     nullif(
@@ -109,7 +111,8 @@ begin
         )
       ),
       ''
-    )
+    ),
+    now() + interval '7 days'
   );
   return new;
 end;

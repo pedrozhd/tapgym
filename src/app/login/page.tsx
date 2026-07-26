@@ -1,7 +1,7 @@
 import { LoginForm } from "@/components/auth/login-form";
 
 /**
- * `?modo=criar` abre a tela já no cadastro — os CTAs da LP ("Assinar", "Criar
+ * `?modo=criar` abre a tela já no cadastro. Os CTAs da LP ("Assinar", "Criar
  * conta") apontam pra lá. Sem isso o usuário clicava em "Criar conta" e caía
  * numa tela de login, com o cadastro escondido atrás de um toggle.
  *

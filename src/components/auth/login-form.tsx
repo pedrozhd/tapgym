@@ -37,13 +37,13 @@ function traduzErro(msg: string): string {
   // verificado, remetente recusado): o GoTrue responde com corpo vazio e o
   // supabase-js repassa isso como `message`, então "{}" chegava na tela.
   if (msg.includes("Error sending") || msg.includes("unexpected_failure")) {
-    return "Não deu pra enviar o e-mail de confirmação. Use “Continuar com Google” — ou tente de novo em alguns minutos.";
+    return "Não deu pra enviar o e-mail de confirmação. Use “Continuar com Google”, ou tente de novo em alguns minutos.";
   }
   // Rede de segurança: qualquer mensagem que não seja texto legível (JSON,
   // vazia) vira uma frase util em vez de ser despejada crua.
   const limpo = msg.trim();
   if (limpo === "" || limpo.startsWith("{") || limpo.startsWith("[")) {
-    return "Não deu pra criar a conta agora. Use “Continuar com Google” — ou tente de novo em alguns minutos.";
+    return "Não deu pra criar a conta agora. Use “Continuar com Google”, ou tente de novo em alguns minutos.";
   }
   return msg;
 }
@@ -105,10 +105,12 @@ export function LoginForm({ modoInicial }: { modoInicial: Modo }) {
       setErro(traduzErro(error.message));
       return;
     }
-    // Sessão na resposta = "Confirm email" desligado: já está logado, segue
-    // direto pro paywall sem passar pela caixa de entrada.
+    // Sessão na resposta = "Confirm email" desligado: já está logado. Vai pro
+    // app, não pro paywall: contas novas ganham 7 dias de teste (migração 0012),
+    // então a cobrança aparece depois, quando a pessoa já viu o produto rodando
+    // com os dados dela.
     if (data.session) {
-      router.replace("/assinar");
+      router.replace("/dashboard");
       router.refresh();
       return;
     }

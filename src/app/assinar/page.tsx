@@ -1,20 +1,42 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SairButton } from "@/components/auth/sair-button";
+import { createClient } from "@/lib/supabase/server";
+import { COLUNAS_ACESSO, trialVigente, type PerfilAcesso } from "@/lib/acesso";
 import { PLANO } from "@/lib/pricing";
 
-export default function AssinarPage() {
+export default async function AssinarPage() {
+  // Quem chega aqui com `trial_ends_at` no passado terminou o teste, e merece
+  // uma frase diferente de quem nunca teve um. Sem isso a tela dizia "sua conta
+  // está criada" para alguém que usou o app por uma semana.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let trialTerminou = false;
+  if (user) {
+    const { data } = await supabase
+      .from("profiles")
+      .select(COLUNAS_ACESSO)
+      .eq("id", user.id)
+      .maybeSingle<PerfilAcesso>();
+    trialTerminou = Boolean(data?.trial_ends_at) && !trialVigente(data);
+  }
+
   return (
-    // min-h-svh: mesma razão de (app)/layout.tsx e do /login — dvh oscila
-    // quando a barra do Safari some na rolagem.
+    // min-h-svh: mesma razão de (app)/layout.tsx e do /login. dvh oscila quando
+    // a barra do Safari some na rolagem.
     <div className="mx-auto flex min-h-svh w-full max-w-[430px] flex-col justify-center bg-background px-6 py-10 text-foreground">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-extrabold tracking-tight">TapGym</h1>
-        {/* Diz explicitamente que a conta já existe: quem chega aqui vindo do
+        {/* Diz explicitamente em que ponto a pessoa está: quem chegava aqui do
             cadastro achava que ainda estava no meio do processo, e leu o botão
-            de sair como "voltar" — perdendo a sessão que acabou de criar. */}
+            de sair como "voltar", perdendo a sessão que acabou de criar. */}
         <p className="mt-2 text-muted-foreground">
-          Sua conta está criada. Assine para liberar o app.
+          {trialTerminou
+            ? "Seu teste de 7 dias terminou. Assine para continuar de onde parou."
+            : "Sua conta está criada. Assine para liberar o app."}
         </p>
       </div>
 
