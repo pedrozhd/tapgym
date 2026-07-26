@@ -59,7 +59,13 @@ export default async function LandingPage({
 
   return (
     <div className="bg-background text-foreground">
-      <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between px-6 py-5 sm:px-8">
+      {/* `viewportFit: "cover"` no root layout faz a página ocupar a área da
+          Dynamic Island / status bar, então o topo precisa do inset — sem ele os
+          botões encostam no relógio no iPhone. Mesmo padrão do bottom-nav. */}
+      <header
+        className="fixed inset-x-0 top-0 z-40 flex items-center justify-between px-6 pb-5 sm:px-8"
+        style={{ paddingTop: "calc(env(safe-area-inset-top) + 1.25rem)" }}
+      >
         <span className="text-lg font-bold tracking-tight">TapGym</span>
         <div className="flex items-center gap-2">
           {logado ? (
