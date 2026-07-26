@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { GoogleButton } from "@/components/auth/google-button";
@@ -187,7 +188,11 @@ export function LoginForm({ modoInicial }: { modoInicial: Modo }) {
   return (
     <>
       <div className="mb-8">
-        <h1 className="text-3xl font-extrabold tracking-tight">TapGym</h1>
+        {/* O título é a saída da tela: sem ele, quem abriu o login sem querer só
+            volta pelo botão do navegador. */}
+        <Link href="/" className="inline-block active:opacity-70">
+          <h1 className="text-3xl font-extrabold tracking-tight">TapGym</h1>
+        </Link>
         <TypographyLead className="mt-1">
           {modo === "entrar" ? "Entre para continuar sua progressão." : "Crie sua conta para começar."}
         </TypographyLead>

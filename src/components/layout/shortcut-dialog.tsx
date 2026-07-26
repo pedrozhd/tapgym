@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 
 // Link do iCloud é imutável por versão: editar o atalho gera um link novo e o
 // antigo continua servindo a versão velha pra sempre. Ao editar, troque aqui.
-export const SHORTCUT_URL = "https://www.icloud.com/shortcuts/f5905800eff74bc2876ef905b734c272";
+export const SHORTCUT_URL = "https://www.icloud.com/shortcuts/f61b0ad8a5b344b0822a2b2de00bf49f";
 
 /**
  * Instruções de instalação do atalho.
