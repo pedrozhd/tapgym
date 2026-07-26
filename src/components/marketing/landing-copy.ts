@@ -41,7 +41,7 @@ export const PAINEIS: Panel[] = [
   {
     eyebrow: "progressão automática",
     headline: "Registre a carga.\nA gente calcula o resto.",
-    lede: "O TapGym acompanha cada série e mostra o próximo passo — sem achismo, sem estagnar.",
+    lede: "O TapGym acompanha cada série e mostra o próximo passo, sem achismo e sem estagnar.",
     align: "left",
   },
   {

@@ -17,12 +17,54 @@ const BENEFICIOS = [
   { icon: Hand, titulo: "Toques grandes", descricao: "Interface pensada pra registrar suado, entre séries, sem precisão de laboratório." },
   { icon: Calendar, titulo: "Seu treino, sua ordem", descricao: "Monte a divisão que quiser, sem forçar PPL, Upper/Lower ou qualquer modelo." },
   { icon: Target, titulo: "Qualidade da série", descricao: "Marque se a série foi boa, razoável ou ruim: contexto que a carga sozinha não dá." },
-  { icon: Zap, titulo: "Rápido de verdade", descricao: "Registrar uma série leva menos tempo do que descansar entre elas." },
+  // Mesmo ícone que o botão do atalho no AppHeader — LP e app falando a mesma
+  // língua. O "no iPhone" no título é deliberado: Atalhos não existe no Android
+  // e prometer isso a todo visitante seria falso.
+  {
+    icon: Zap,
+    titulo: "Atalho no iPhone",
+    descricao: "Registre a série sem abrir o app: um atalho na tela de início resolve entre uma série e outra.",
+  },
   { icon: Lock, titulo: "Seus dados", descricao: "Seu histórico fica com você, sem redes sociais, sem feed, sem distração." },
 ];
 
 const LINK_HEADER =
   "flex h-10 items-center rounded-full border border-border px-4 text-[13px] font-semibold text-foreground transition-colors hover:border-primary hover:text-primary";
+
+/**
+ * CTA de assinatura da LP.
+ *
+ * Logado, envia direto pro checkout do Stripe — a mesma rota que o formulário do
+ * `/assinar` usa. Antes apontava pro `/assinar`, onde o usuário tinha que clicar
+ * em "Assinar" de novo: a mesma palavra duas vezes para uma ação, com o preço já
+ * visível aqui na LP.
+ *
+ * Anônimo continua indo pro cadastro, porque o checkout exige sessão.
+ */
+function CtaAssinar({
+  logado,
+  className,
+  children,
+}: {
+  logado: boolean;
+  className: string;
+  children: React.ReactNode;
+}) {
+  if (!logado) {
+    return (
+      <Link href="/login?modo=criar" className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <form action="/api/stripe/checkout" method="POST" className="contents">
+      <button type="submit" className={className}>
+        {children}
+      </button>
+    </form>
+  );
+}
 
 /**
  * A LP é dinâmica (não mais estática) porque precisa saber se há sessão: o
@@ -52,11 +94,6 @@ export default async function LandingPage({
   } = await supabase.auth.getUser();
   const logado = user !== null;
 
-  // Quem está logado e chega aqui não tem assinatura (o middleware desvia os
-  // assinantes pro /dashboard), então o destino de compra é o paywall direto,
-  // sem passar pelo /login.
-  const hrefAssinar = logado ? "/assinar" : "/login?modo=criar";
-
   return (
     <div className="bg-background text-foreground">
       {/* `viewportFit: "cover"` no root layout faz a página ocupar a área da
@@ -70,9 +107,9 @@ export default async function LandingPage({
         <div className="flex items-center gap-2">
           {logado ? (
             <>
-              <Link href="/assinar" className={LINK_HEADER}>
+              <CtaAssinar logado={logado} className={LINK_HEADER}>
                 Assinar
-              </Link>
+              </CtaAssinar>
               {/* Sair tem que existir aqui: sem assinatura o usuário só alcança
                   esta página e o /assinar, então este e o do paywall são os
                   únicos pontos de saída do app. */}
@@ -86,7 +123,7 @@ export default async function LandingPage({
         </div>
       </header>
 
-      <h1 className="sr-only">TapGym — Progressão de carga, sem planilha.</h1>
+      <h1 className="sr-only">TapGym: progressão de carga, sem planilha.</h1>
 
       {/* Experiência 3D (ou fallback estático em reduced-motion) */}
       <LandingHero />
@@ -143,16 +180,12 @@ export default async function LandingPage({
                 </li>
               ))}
             </ul>
-            {/* Visitante anônimo em /assinar é redirecionado pro /login pelo
-                middleware — apontar direto pro /login evita o hop. `modo=criar`
-                abre já no cadastro: quem vem daqui não tem conta ainda. Depois
-                do signup, o próprio login manda pra /assinar. */}
-            <Link
-              href={hrefAssinar}
+            <CtaAssinar
+              logado={logado}
               className="mt-8 flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-[15px] font-bold text-primary-foreground transition-transform hover:scale-[1.02]"
             >
               Assinar
-            </Link>
+            </CtaAssinar>
           </div>
         </div>
       </section>
@@ -169,12 +202,12 @@ export default async function LandingPage({
           </p>
           {/* "Criar conta" só pra quem não tem: quem já criou vê a ação que
               falta de verdade, que é assinar. */}
-          <Link
-            href={hrefAssinar}
+          <CtaAssinar
+            logado={logado}
             className="mx-auto mt-8 flex h-12 w-full max-w-xs items-center justify-center rounded-xl bg-primary px-6 text-[15px] font-bold text-primary-foreground transition-transform hover:scale-[1.02]"
           >
             {logado ? "Assinar" : "Criar conta"}
-          </Link>
+          </CtaAssinar>
         </div>
       </section>
 
