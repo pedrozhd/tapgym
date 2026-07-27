@@ -235,11 +235,41 @@ Dois lugares, dois papéis:
 
 O ícone de raio no header e o card ficam escondidos fora do iOS (`src/lib/use-ios.ts`).
 
+### As instruções do app e o comportamento do atalho têm que concordar
+
+O passo 3 do `ShortcutDialog` diz **"Cole o token onde o atalho pedir"**. Isso só é verdade se o atalho realmente pedir. Se o token estiver num campo de texto que o dono editou à mão, a instrução é falsa para todo mundo que não seja ele: a pessoa instala, nada é perguntado, e ela não descobre onde colar.
+
+O mecanismo correto é **Import Questions** do Atalhos (no editor: `Setup` → `Add New Question` → escolher o parâmetro → `Question Text`). Ele pergunta **uma vez**, na importação, e grava a resposta dentro do próprio atalho. O resultado é igual a ter editado o campo à mão, sem o usuário abrir o editor.
+
+Não confundir com a ação **"Pedir Entrada"** (*Ask for Input*), que roda a cada execução e não guarda nada. Um atalho usado entre séries não pode pedir token toda vez.
+
+Também foi cogitado guardar o token num arquivo do iCloud Drive (`Obter Arquivo` / `Salvar Arquivo`) e **descartado**: resolve o mesmo problema com mais peças e com dois modos de falha documentados, a sincronização lenta entre dispositivos e o iCloud descarregando o arquivo do aparelho.
+
+### Rotação de token invalida o atalho instalado
+
+Como o token fica gravado dentro do atalho, usar "Gerar novo token" na AccountSheet faz o atalho já instalado parar de registrar.
+
+O conserto mais limpo é **reinstalar pelo link**, porque a Import Question é feita de novo e pede o token novo. Mandar a pessoa caçar o campo no editor é o caminho ruim.
+
+A confirmação da rotação hoje diz "Você vai precisar colar o novo no atalho do iPhone", que é verdade mas não diz como. Trocar por algo que mande reinstalar pelo link está em aberto.
+
 ### Pendência aberta
 
 Não foi verificado se o "Obter Conteúdo de URL" do Atalhos **aborta o atalho** em respostas não-2xx. Se abortar, as mensagens de erro acima nunca chegam ao usuário: um 402 de assinatura vencida vira alerta genérico do sistema.
 
 Se confirmado, a correção é as duas rotas responderem sempre `200` com `{ ok: false, error }`. O raciocínio: uma API consumida por um cliente que não sabe ramificar em status code não deveria sinalizar erro por status code.
+
+Como testar: numa conta de teste, ponha `subscription_status = 'canceled'` e `is_legacy_free = false`, rode o atalho, e veja se aparece a frase "assinatura inativa, reative no app" ou um erro genérico do sistema. Depois reverta.
+
+### Onde o atalho está (27/07/2026)
+
+Funcionando de ponta a ponta, depois de corrigir o `www` na ação do POST. Faltam três coisas, nesta ordem de importância:
+
+1. **Import Questions no atalho**, para o passo 3 do diálogo deixar de ser falso.
+2. **`www` na ação do GET.** Funciona sem, porque redirect em GET é seguido por qualquer cliente, mas paga uma ida e volta extra em cada chamada.
+3. **Testar o comportamento em não-2xx** (acima) e, se preciso, mudar as duas rotas.
+
+Ao editar o atalho, o link do iCloud muda e o `SHORTCUT_URL` precisa acompanhar.
 
 ---
 
