@@ -202,6 +202,10 @@ POST /api/registrar
 
 **Essa API precisa ser estável para sempre.** Não existe atualização automática de atalho: nada no servidor consegue alterar um atalho já instalado. Cada quebra de compatibilidade obriga toda a base a reinstalar e reconfigurar o token na mão. Nunca renomeie os caminhos nem os campos; sempre aceite o formato antigo.
 
+**Sempre chame com `www.`.** O apex `tapgym.com.br` responde `308 Permanent Redirect` para `www.tapgym.com.br`, e esse redirecionamento acontece na camada de domínio, **antes** de qualquer invocação de função. O Atalhos não segue o 308 num POST: a requisição fica pendurada e não aparece log nenhum, porque a função nunca é chamada. Já custou uma sessão de investigação, com o sintoma enganoso de "o POST não funciona" quando o GET, que apontava para o www, funcionava normalmente.
+
+Se algum dia o diagnóstico for "requisição do atalho não chega e não há log", confira o `www` antes de qualquer outra coisa. O redirect apex para www é mantido de propósito, para ter host canônico e não duplicar a LP para buscadores.
+
 `/api/registrar` também verifica que o `exercicio_id` pertence ao dono do token. Como a rota usa service role, **é essa checagem, não o banco**, que impede um token válido de gravar série no exercício de outra pessoa.
 
 ### O token
