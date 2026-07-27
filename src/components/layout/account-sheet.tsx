@@ -112,8 +112,10 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
 
         <div className="flex flex-col gap-2 px-4">
           <TypographyEyebrow>TOKEN DO SHORTCUT</TypographyEyebrow>
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
-            <span className="flex-1 truncate font-mono text-xs text-muted-foreground">
+          {/* min-w-0 nos dois níveis, mesma razão do shortcut-dialog: sem isso a
+              largura mínima do token vence o `truncate` e estica o container. */}
+          <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
+            <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
               {token ?? "Carregando..."}
             </span>
             <Button

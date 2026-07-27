@@ -53,7 +53,10 @@ export function ShortcutDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[340px] rounded-2xl bg-card">
+      {/* min() em vez de 340px puro: passar só `max-w-[340px]` fazia o
+          tailwind-merge descartar o `max-w-[calc(100%-2rem)]` do DialogContent,
+          que é a trava de viewport. */}
+      <DialogContent className="max-w-[min(340px,calc(100%-2rem))] rounded-2xl bg-card">
         <DialogHeader>
           <DialogTitle>Atalho do TapGym</DialogTitle>
         </DialogHeader>
@@ -63,13 +66,17 @@ export function ShortcutDialog({
           uma única vez.
         </p>
 
-        <ol className="flex flex-col gap-3 text-[13px] leading-relaxed">
-          <li className="flex flex-col gap-2">
+        <ol className="flex min-w-0 flex-col gap-3 text-[13px] leading-relaxed">
+          <li className="flex min-w-0 flex-col gap-2">
             <span>
               <strong className="text-foreground">1.</strong> Copie seu token de acesso.
             </span>
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
-              <span className="flex-1 truncate font-mono text-xs text-muted-foreground">
+            {/* min-w-0 nos dois níveis: item de flex tem `min-width: auto`, então
+                a largura mínima do token (48 caracteres sem espaço, em
+                monoespaçada) vencia o `truncate` e esticava o diálogo além da
+                tela, cortando o botão Copiar e o texto à direita. */}
+            <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
+              <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
                 {token ?? "Carregando..."}
               </span>
               <Button
