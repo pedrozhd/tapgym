@@ -6,8 +6,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { createClient } from "@/lib/supabase/client";
 
 // Link do iCloud é imutável por versão: editar o atalho gera um link novo e o
-// antigo continua servindo a versão velha pra sempre. Ao editar, troque aqui.
-export const SHORTCUT_URL = "https://www.icloud.com/shortcuts/f61b0ad8a5b344b0822a2b2de00bf49f";
+// antigo continua servindo a versão velha pra sempre. Ao editar o atalho, troque
+// a variável (local e na Vercel) e faça deploy, senão todo mundo segue
+// instalando a versão antiga.
+//
+// Mora em env var pra não ficar no repositório. Precisa do prefixo NEXT_PUBLIC
+// porque este é um client component; não é segredo, e não tem como ser: o botão
+// abaixo existe justamente pra entregar esse link ao usuário.
+export const SHORTCUT_URL = process.env.NEXT_PUBLIC_SHORTCUT_URL ?? "";
 
 /**
  * Instruções de instalação do atalho.
@@ -112,13 +118,21 @@ export function ShortcutDialog({
           o atalho não encontra o treino de hoje.
         </p>
 
-        <Button
-          render={<a href={SHORTCUT_URL} target="_blank" rel="noreferrer" />}
-          nativeButton={false}
-          className="shadow-soft-elevated mt-1 h-11 w-full rounded-xl"
-        >
-          Instalar atalho
-        </Button>
+        {/* Sem a env var, um href="" recarregaria o app e a pessoa não teria
+            como entender o que falhou. Botão morto é feio, mas é honesto. */}
+        {SHORTCUT_URL ? (
+          <Button
+            render={<a href={SHORTCUT_URL} target="_blank" rel="noreferrer" />}
+            nativeButton={false}
+            className="shadow-soft-elevated mt-1 h-11 w-full rounded-xl"
+          >
+            Instalar atalho
+          </Button>
+        ) : (
+          <Button disabled className="shadow-soft-elevated mt-1 h-11 w-full rounded-xl">
+            Atalho indisponível
+          </Button>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -184,21 +184,27 @@ Eventos tratados: `checkout.session.completed`, `customer.subscription.updated`,
 
 Duas rotas, autenticadas por `profiles.api_token` (não por sessão). Usam a service role key, então **não passam por RLS nem pelo middleware**: toda checagem é explícita no código da rota.
 
+**As duas respondem sempre HTTP 200.** Erro vai no corpo, nunca no status. O porquê está em "Erro no corpo, não no status" abaixo.
+
 ```
 GET /api/hoje?token=...
-  200 { treino_nome, exercicios: [{ id, nome, num_series, rep_min, rep_max, ultima_carga }] }
-  401 { error: "token inválido" }
-  402 { error: "assinatura inativa, reative no app" }
-  404 { error: "nenhum treino configurado" | "hoje é dia de descanso" }
-  429 { error: "muitas requisições, tente novamente em instantes" }
+  { ok: true,  treino_nome, exercicios: [{ id, nome, num_series, rep_min, rep_max, ultima_carga }] }
+  { ok: false, code: 401, error: "token inválido" }
+  { ok: false, code: 402, error: "assinatura inativa, reative no app" }
+  { ok: false, code: 404, error: "nenhum treino configurado" | "hoje é dia de descanso" }
+  { ok: false, code: 429, error: "muitas requisições, tente novamente em instantes" }
+  { ok: false, code: 500, error: "erro no servidor, tente novamente" }
 
 POST /api/registrar
   body { token, exercicio_id, carga, reps, qualidade }   qualidade: boa | razoavel | ruim
-  200 { ok: true }
-  400 { error: "campos obrigatórios: ..." }
+  { ok: true }
+  { ok: false, code: 400, error: "campos obrigatórios: ..." }
+  { ok: false, code: 404, error: "exercício não encontrado" }
+  { ok: false, code: 500, error: "não deu para salvar a série, tente novamente" }
   401 / 402 / 429 como acima
-  404 { error: "exercício não encontrado" }
 ```
+
+O formato vive em `src/lib/atalho.ts`: `sucesso()`, `falha()` e `rotaAtalho()`. **Use as três em qualquer rota nova do atalho**, em vez de montar `NextResponse.json` à mão.
 
 **Essa API precisa ser estável para sempre.** Não existe atualização automática de atalho: nada no servidor consegue alterar um atalho já instalado. Cada quebra de compatibilidade obriga toda a base a reinstalar e reconfigurar o token na mão. Nunca renomeie os caminhos nem os campos; sempre aceite o formato antigo.
 
@@ -222,9 +228,13 @@ Vale acesso pago desde que o paywall entrou nessas rotas. Três defesas:
 
 ### Distribuição
 
-O atalho é distribuído por link do iCloud, apontado por `SHORTCUT_URL` em `src/components/layout/shortcut-dialog.tsx`.
+O atalho é distribuído por link do iCloud, lido de `NEXT_PUBLIC_SHORTCUT_URL` em `src/components/layout/shortcut-dialog.tsx`.
 
-**Link do iCloud é imutável por versão.** Editar o atalho gera um link novo, e o antigo continua servindo a versão velha para sempre. Ao editar o atalho, troque a constante e faça deploy, senão os usuários seguem instalando a versão antiga.
+**Link do iCloud é imutável por versão.** Editar o atalho gera um link novo, e o antigo continua servindo a versão velha para sempre. Ao editar o atalho, troque a variável (local **e** na Vercel) e faça deploy, senão os usuários seguem instalando a versão antiga.
+
+**Está em env var para não ficar no repositório, que é público.** Não confunda com segredo: o prefixo `NEXT_PUBLIC` é obrigatório porque o diálogo é client component, e o link é servido ao browser de qualquer forma. Tem que ser: o botão "Instalar atalho" existe justamente para entregar esse link ao usuário. Sigilo aqui não é uma defesa que este projeto tenha, e nem poderia ser (ver "O que não dá para defender").
+
+Sem a variável, o botão do diálogo aparece desabilitado como "Atalho indisponível". É deliberado: um `href=""` recarregaria o app e a pessoa não teria como entender o que falhou.
 
 ### Onboarding
 
@@ -253,23 +263,31 @@ O conserto mais limpo é **reinstalar pelo link**, porque a Import Question é f
 
 A confirmação da rotação hoje diz "Você vai precisar colar o novo no atalho do iPhone", que é verdade mas não diz como. Trocar por algo que mande reinstalar pelo link está em aberto.
 
-### Pendência aberta
+### Erro no corpo, não no status
 
-Não foi verificado se o "Obter Conteúdo de URL" do Atalhos **aborta o atalho** em respostas não-2xx. Se abortar, as mensagens de erro acima nunca chegam ao usuário: um 402 de assinatura vencida vira alerta genérico do sistema.
+O "Obter Conteúdo de URL" do Atalhos **não expõe o status HTTP** em nenhuma variável do fluxo. Ele lê o corpo normalmente, mas não tem como ramificar em 401 / 402 / 404 / 429, então toda mensagem de erro chegava ao usuário como alerta genérico do sistema, mesmo com um `error` descritivo no corpo. Um 402 de assinatura vencida, que é a mensagem que mais precisa chegar, era o pior caso.
 
-Se confirmado, a correção é as duas rotas responderem sempre `200` com `{ ok: false, error }`. O raciocínio: uma API consumida por um cliente que não sabe ramificar em status code não deveria sinalizar erro por status code.
+Daí o contrato de sempre 200. O raciocínio: uma API consumida por um cliente que não sabe ramificar em status code não deveria sinalizar erro por status code.
 
-Como testar: numa conta de teste, ponha `subscription_status = 'canceled'` e `is_legacy_free = false`, rode o atalho, e veja se aparece a frase "assinatura inativa, reative no app" ou um erro genérico do sistema. Depois reverta.
+Três consequências que não são óbvias:
+
+- **O atalho ramifica pelo campo `error` ("tem algum valor"), não pelo `ok`.** Booleano de JSON vira 1/0 no Atalhos e a comparação é instável entre versões do iOS; "tem algum valor" é a condição confiável do app. `ok` e `code` seguem no contrato para log e para qualquer cliente futuro.
+- **Exceção também precisa virar 200.** É o que o `rotaAtalho()` faz. Sem ele, Supabase fora do ar ou env faltando devolve 500 com corpo HTML, sem campo nenhum, e o alerta genérico volta justamente no cenário de erro mais provável.
+- **Sempre 200 apaga a taxa de erro dos painéis da Vercel**, que só enxergam status. O `falha()` compensa com `console.error` / `console.warn` e o header `X-Error-Code`. Se algum dia o diagnóstico for "as rotas do atalho não dão erro nenhum", é isto: procure nos logs, não no status.
+
+Falta o teste de aceitação no dispositivo: numa conta de teste, `subscription_status = 'canceled'` e `is_legacy_free = false`, rodar o atalho e confirmar que aparece a frase "assinatura inativa, reative no app", e não erro genérico. Depois reverta.
 
 ### Onde o atalho está (27/07/2026)
 
-Funcionando de ponta a ponta, depois de corrigir o `www` na ação do POST. Faltam três coisas, nesta ordem de importância:
+Servidor pronto: as duas rotas já respondem sempre 200 no formato acima. No atalho, `www` no GET e Import Questions para o token estão feitos, e a ramificação de erro nas duas chamadas está em andamento.
 
-1. **Import Questions no atalho**, para o passo 3 do diálogo deixar de ser falso.
-2. **`www` na ação do GET.** Funciona sem, porque redirect em GET é seguido por qualquer cliente, mas paga uma ida e volta extra em cada chamada.
-3. **Testar o comportamento em não-2xx** (acima) e, se preciso, mudar as duas rotas.
+Falta, nesta ordem:
 
-Ao editar o atalho, o link do iCloud muda e o `SHORTCUT_URL` precisa acompanhar.
+1. **Terminar a ramificação de erro** no atalho (`Obter Valor do Dicionário: error` → `Se tem algum valor` → alerta → parar).
+2. **Trocar `NEXT_PUBLIC_SHORTCUT_URL`** pelo link novo do iCloud, local e na Vercel, e fazer deploy.
+3. **Rodar o teste de aceitação** acima.
+
+Ao editar o atalho, o link do iCloud muda e a variável precisa acompanhar. Só pegue o link **depois** da última edição: cada salvamento gera link novo, e publicar um link intermediário distribui uma versão incompleta para sempre.
 
 ---
 
@@ -331,7 +349,7 @@ Como rede de segurança para o caso do Site URL, a LP reencaminha `?code=` para 
 
 ### Vercel
 
-Variáveis em produção: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_*` (4), `KV_*` / `REDIS_URL` (5), `RESEND_API_KEY`.
+Variáveis em produção: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_*` (4), `KV_*` / `REDIS_URL` (5), `RESEND_API_KEY`, `NEXT_PUBLIC_SHORTCUT_URL`.
 
 **`vercel env pull` sobrescreve o `.env.local`.** Variável que existe só localmente e não na Vercel é apagada no próximo pull. Já aconteceu duas vezes neste projeto.
 
