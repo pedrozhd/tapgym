@@ -34,18 +34,20 @@ export function TrialAviso() {
         {dias === 1 ? "Último dia do seu teste gratuito." : `Teste gratuito: ${dias} dias restantes.`}
       </span>
 
-      {/* Só nos últimos dois dias, e vai direto pro checkout, igual aos CTAs da
-          LP: "Assinar" que leva a outra tela com outro "Assinar" é redundante. */}
-      {urgente && (
-        <form action="/api/stripe/checkout" method="POST" className="shrink-0">
-          <button
-            type="submit"
-            className="-my-2.5 flex min-h-11 items-center font-bold underline underline-offset-4 active:opacity-70"
-          >
-            Assinar
-          </button>
-        </form>
-      )}
+      {/* Sempre presente, não só na urgência: escondê-lo nos primeiros dias
+          tirava o único caminho contextual pra quem decidiu pagar antes do prazo.
+          O que escala é a cor, não a existência do botão.
+
+          Vai direto pro checkout, igual aos CTAs da LP: "Assinar" que leva a
+          outra tela com outro "Assinar" é redundante. */}
+      <form action="/api/stripe/checkout" method="POST" className="shrink-0">
+        <button
+          type="submit"
+          className="-my-2.5 flex min-h-11 items-center font-bold underline underline-offset-4 active:opacity-70"
+        >
+          Assinar
+        </button>
+      </form>
     </div>
   );
 }

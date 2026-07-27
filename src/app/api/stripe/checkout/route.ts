@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { COLUNAS_ACESSO, temAcesso } from "@/lib/acesso";
+import { COLUNAS_ACESSO, naoPrecisaAssinar } from "@/lib/acesso";
 import { getStripe } from "@/lib/stripe";
 
 export async function POST(request: Request) {
@@ -22,10 +22,14 @@ export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
 
   // Evita criar uma segunda assinatura/customer no Stripe quando o usuário já
-  // tem acesso (ex.: acabou de pagar e o webhook `checkout.session.completed`
-  // ainda não gravou `subscription_status = "active"` a tempo do middleware
-  // liberar `/dashboard`). A regra vive em `src/lib/acesso.ts`.
-  if (temAcesso(profile)) {
+  // paga (ex.: acabou de pagar e o webhook `checkout.session.completed` ainda
+  // não gravou `subscription_status = "active"` a tempo do middleware liberar
+  // `/dashboard`).
+  //
+  // `naoPrecisaAssinar`, não `temAcesso`: quem está em teste gratuito tem acesso
+  // mas pode querer assinar antes do prazo acabar, e com `temAcesso` aqui esse
+  // usuário era devolvido pro dashboard em silêncio ao tentar pagar.
+  if (naoPrecisaAssinar(profile)) {
     return NextResponse.redirect(`${origin}/dashboard`, { status: 303 });
   }
 

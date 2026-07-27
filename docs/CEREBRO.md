@@ -63,6 +63,19 @@ trial_ends_at > agora          → teste gratuito vigente
 
 Ao mexer em acesso, mexa em `acesso.ts`. Se precisar de uma coluna nova, adicione em `COLUNAS_ACESSO` e todos os `select` acompanham.
 
+### `temAcesso` não é a mesma pergunta que `naoPrecisaAssinar`
+
+São duas perguntas diferentes e confundi-las já causou bug:
+
+| Função | Pergunta | Trial conta? |
+|---|---|---|
+| `temAcesso` | pode usar o app? | **sim** |
+| `naoPrecisaAssinar` | o checkout é desnecessário? | **não** |
+
+A rota de checkout usa a segunda. Ela existe para não criar uma segunda assinatura em quem já paga, mas quando o teste gratuito entrou no `temAcesso`, esse guarda herdou o significado novo e passou a barrar **quem estava em teste e queria pagar antes do prazo**: o POST era devolvido para o `/dashboard` em silêncio.
+
+Regra prática: gate de acesso usa `temAcesso`; qualquer coisa relacionada a cobrar usa `naoPrecisaAssinar`.
+
 ### Os três estados, e de onde vêm
 
 | Estado | Origem |
@@ -77,7 +90,11 @@ Sem cartão. O cadastro entra direto no app; o paywall só aparece quando o praz
 
 Existe porque o cadastro caía direto no `/assinar`: a primeira tela depois de criar a conta era um preço, sem a pessoa nunca ter visto o produto funcionando com os dados dela.
 
-**O contador é obrigatório, não enfeite.** Um teste que vence em silêncio é a mesma agressividade, só adiada: no oitavo dia o app tranca sem aviso. Por isso `TrialAviso` fica no topo do Dashboard (uma linha, sem card, para não competir com o treino do dia) e escala para cor de alerta mais botão de assinar nos dois últimos dias. A AccountSheet também mostra.
+**O contador é obrigatório, não enfeite.** Um teste que vence em silêncio é a mesma agressividade, só adiada: no oitavo dia o app tranca sem aviso. Por isso `TrialAviso` fica no topo do Dashboard (uma linha, sem card, para não competir com o treino do dia) e escala para cor de alerta nos dois últimos dias. A AccountSheet também mostra os dias restantes.
+
+**Quem está em teste tem que poder assinar de dentro do app**, e há dois caminhos: o "Assinar" do `TrialAviso` e o "Assinar agora" na AccountSheet. Os dois postam direto para o checkout.
+
+Isso não é conveniência, é desbloqueio. Durante o teste `temAcesso` é `true`, então o middleware manda quem está logado de volta da `/` para o `/dashboard`: **a pessoa não consegue nem chegar na landing page para clicar em Assinar**. Sair da conta também não resolve, porque depois do login ela é devolvida ao `/dashboard`. Sem botão dentro do app, alguém decidido a pagar simplesmente não tinha por onde.
 
 **Limitação conhecida e aceita:** dá para repetir o teste criando outra conta, e com login Google isso é trivial. Não existe defesa boa sem exigir cartão, o que reintroduziria a parede que o teste veio remover.
 

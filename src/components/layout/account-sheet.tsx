@@ -197,6 +197,17 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
             <p className="px-1 text-center text-xs text-muted-foreground">
               Seu acesso é gratuito e vitalício. Não há assinatura pra gerenciar.
             </p>
+          ) : perfil ? (
+            // Sem customer no Stripe e sem isenção: está em teste gratuito. Este
+            // ramo devolvia null, e era o único lugar de cobrança do app inteiro,
+            // então quem estava em teste e queria pagar não tinha por onde. A LP
+            // também não servia: durante o teste o middleware manda quem está
+            // logado de volta pro /dashboard.
+            <form action="/api/stripe/checkout" method="POST">
+              <Button type="submit" className="h-11 w-full rounded-xl font-bold">
+                Assinar agora
+              </Button>
+            </form>
           ) : null}
           <SairButton className="h-11 w-full rounded-xl" />
         </SheetFooter>

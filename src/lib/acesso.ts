@@ -35,6 +35,18 @@ export function temAcesso(perfil: PerfilAcesso | null | undefined): boolean {
   );
 }
 
+/**
+ * Acesso que torna o checkout desnecessário: já paga, ou é isento pra sempre.
+ *
+ * Note que trial vigente NÃO entra aqui, e é justamente o ponto: quem está em
+ * teste tem acesso mas pode querer assinar antes do prazo acabar. A rota de
+ * checkout usava `temAcesso` pra evitar criar uma segunda assinatura, e quando o
+ * trial entrou no `temAcesso` esse guarda passou a barrar quem queria pagar.
+ */
+export function naoPrecisaAssinar(perfil: PerfilAcesso | null | undefined): boolean {
+  return Boolean(perfil?.is_legacy_free) || perfil?.subscription_status === "active";
+}
+
 /** Dias inteiros que faltam do teste. 0 quando não há teste vigente. */
 export function diasRestantesTrial(perfil: PerfilAcesso | null | undefined): number {
   if (!trialVigente(perfil)) return 0;
