@@ -100,6 +100,11 @@
   --shadow-soft-hi-subtle: rgba(255, 255, 255, 0.6);
   --shadow-soft-lo: rgba(163, 177, 198, 0.5);
   --shadow-soft-lo-subtle: rgba(163, 177, 198, 0.35);
+  /* Altura da bottom nav, safe area incluída. O nav aplica como min-height e o
+     ToastPill se posiciona a partir dela — antes o toast tinha um
+     bottom-[104px] cravado na mão, que virou número mágico assim que o nav
+     mudou de flutuante pra full-bleed. */
+  --rg-bottom-nav-h: calc(56px + env(safe-area-inset-bottom));
 }
 
 .dark {
@@ -189,8 +194,9 @@
 }
 
 /* Sombras Soft UI — substituem border-border nas superfícies "elevadas"
-   (cards, CTA) e "sutis" (rows de lista); "pressed" é o estado ativo/fundo
-   levemente encaixado (ex: aba ativa da bottom nav). */
+   (cards, CTA) e "sutis" (rows de lista). "pressed" é o fundo levemente
+   encaixado; está sem uso desde que a bottom nav virou full-bleed, mantido
+   porque é o par natural das outras duas quando aparecer um estado ativo. */
 .shadow-soft-elevated {
   box-shadow:
     -8px -8px 16px var(--shadow-soft-hi),
@@ -223,6 +229,30 @@
   }
   100% {
     opacity: 0;
+  }
+}
+
+/* Barras horizontais do card de volume por grupamento. scaleX em vez de
+   animar `width`: largura entra em layout e faz reflow a cada frame, transform
+   não. `backwards` importa por causa do delay em cascata — sem isso a barra
+   apareceria cheia e só depois começaria a crescer. */
+@keyframes rg-bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.rg-bar-grow {
+  transform-origin: left center;
+  animation: rg-bar-grow 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rg-bar-grow {
+    animation: none;
   }
 }
 

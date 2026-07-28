@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, type HTMLAttributes } from "react";
-import { GripVertical, Link2 } from "lucide-react";
+import { GripVertical, Link2, X } from "lucide-react";
 import { BlurCommitInput } from "@/components/ui/blur-commit-input";
+import { GrupoMuscularSelect } from "@/components/treino/grupo-muscular-select";
 import { RemoverExercicioDialog } from "@/components/treino/remover-exercicio-dialog";
-import { GRUPOS_MUSCULARES, LABEL_GRUPO_MUSCULAR } from "@/lib/grupos-musculares";
 import type { GrupoMuscular } from "@/lib/types";
 
 interface TreinoExercicioRowProps {
@@ -44,7 +44,10 @@ export function TreinoExercicioRow({
   const [confirmandoRemocao, setConfirmandoRemocao] = useState(false);
 
   return (
-    <div className="shadow-soft-subtle flex flex-col gap-1.5 rounded-xl bg-background px-3.5 py-2.5">
+    // gap-2.5 e py-3: com gap-1.5/py-2.5 o badge de grupamento encostava na
+    // linha de séries e na borda de baixo do card. O respiro também deixa a
+    // área de toque esticada do badge (44px) não invadir os inputs de reps.
+    <div className="shadow-soft-subtle flex flex-col gap-2.5 rounded-xl bg-background px-3.5 py-3">
       <div className="flex items-center gap-2.5">
         <button
           type="button"
@@ -75,9 +78,9 @@ export function TreinoExercicioRow({
           type="button"
           onClick={() => setConfirmandoRemocao(true)}
           aria-label="Remover exercício"
-          className="shrink-0 px-1 text-base text-muted-foreground"
+          className="shrink-0 px-1 text-muted-foreground active:opacity-60"
         >
-          ✕
+          <X size={16} />
         </button>
       </div>
 
@@ -112,25 +115,7 @@ export function TreinoExercicioRow({
       </div>
 
       <div className="pl-[26px]">
-        <select
-          aria-label="Grupamento muscular"
-          value={grupoMuscular ?? ""}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (!value) return;
-            onGrupoMuscularChange(value as GrupoMuscular);
-          }}
-          className="h-7 w-full max-w-[220px] rounded-md border border-input bg-secondary/60 px-2 text-[13px] text-foreground"
-        >
-          <option value="" disabled>
-            Escolher grupamento
-          </option>
-          {GRUPOS_MUSCULARES.map((grupo) => (
-            <option key={grupo} value={grupo}>
-              {LABEL_GRUPO_MUSCULAR[grupo]}
-            </option>
-          ))}
-        </select>
+        <GrupoMuscularSelect value={grupoMuscular} onChange={onGrupoMuscularChange} />
       </div>
 
       <RemoverExercicioDialog

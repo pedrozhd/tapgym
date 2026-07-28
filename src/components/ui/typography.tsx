@@ -40,7 +40,17 @@ export function TypographyMuted({ className, ...props }: ComponentProps<"p">) {
   return <p className={cn("text-[13px] text-muted-foreground", className)} {...props} />;
 }
 
-/** Rótulo pequeno em versalete usado no topo de todo card/seção do app (ex: "TREINO DE HOJE"). */
+/**
+ * Título de uma seção da página (ex: "Exercícios de hoje", acima de uma lista
+ * de rows). Nível acima do Eyebrow de propósito: os dois eram o mesmo estilo,
+ * então rótulo de card e título de seção ficavam indistinguíveis e não se via o
+ * que estava dentro do quê.
+ */
+export function TypographySectionTitle({ className, ...props }: ComponentProps<"h2">) {
+  return <h2 className={cn("text-[15px] font-bold tracking-tight", className)} {...props} />;
+}
+
+/** Rótulo pequeno em versalete usado no topo de um card (ex: "TREINO DE HOJE"). */
 export function TypographyEyebrow({ className, ...props }: ComponentProps<"p">) {
   return (
     <p

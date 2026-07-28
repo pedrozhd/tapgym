@@ -71,7 +71,7 @@ export default function DashboardPage() {
 
                 {dashboard.treino ? (
                   <>
-                    <TreinoDeHojeCard treino={dashboard.treino} />
+                    <TreinoDeHojeCard treino={dashboard.treino} progresso={dashboard.progressoHoje} />
                     {dashboard.exercicioEmFoco ? (
                       <ExercicioEmFocoCard dados={dashboard.exercicioEmFoco} />
                     ) : (
@@ -82,7 +82,20 @@ export default function DashboardPage() {
                         </TypographyMuted>
                       </SoftCard>
                     )}
-                    <ExercicioGrid exercicios={dashboard.exercicios} />
+                    {/* O exercício em foco sai da lista: ele já está no card
+                        logo acima, e ver o mesmo nome duas vezes em sequência
+                        parecia bug. O título muda junto pra lista não mentir
+                        sobre o que contém. */}
+                    <ExercicioGrid
+                      exercicios={
+                        dashboard.exercicioEmFoco
+                          ? dashboard.exercicios.filter(
+                              (ex) => ex.exercicioId !== dashboard.exercicioEmFoco?.exercicioId,
+                            )
+                          : dashboard.exercicios
+                      }
+                      titulo={dashboard.exercicioEmFoco ? "Resto do treino" : "Exercícios de hoje"}
+                    />
                     <VolumeSeriesPorGrupoCard
                       volumes={dashboard.volumeSeriesPorGrupo}
                       exerciciosSemGrupo={dashboard.exerciciosSemGrupo}

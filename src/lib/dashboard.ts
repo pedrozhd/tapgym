@@ -256,9 +256,16 @@ export interface DashboardExercicioVM extends ResumoExercicio {
   exercicioId: string;
 }
 
+/** Séries do treino de hoje já registradas contra as planejadas. */
+export interface ProgressoDoDia {
+  feitas: number;
+  total: number;
+}
+
 export interface DashboardVM {
   treino: { id: string; nome: string; totalExercicios: number } | null;
   exercicios: DashboardExercicioVM[];
+  progressoHoje: ProgressoDoDia;
   volumeSemanal: VolumeSemana[];
   volumeSeriesPorGrupo: VolumeGrupoSemana[];
   exerciciosSemGrupo: number;
@@ -283,6 +290,7 @@ export function getDashboardData(
     return {
       treino: null,
       exercicios: [],
+      progressoHoje: { feitas: 0, total: 0 },
       volumeSemanal: getVolumeSemanal(series),
       volumeSeriesPorGrupo,
       exerciciosSemGrupo,
@@ -295,6 +303,8 @@ export function getDashboardData(
     .filter((te) => te.treino_id === treinoDeHoje.id)
     .sort((a, b) => a.ordem - b.ordem);
 
+  const hojeISO = getDataLocalISO(data, APP_TIMEZONE);
+
   const exerciciosVM: DashboardExercicioVM[] = exerciciosDoTreino.map((te) => {
     const exercicio = exercicios.find((e) => e.id === te.exercicio_id);
     const seriesDoExercicio = series.filter((s) => s.exercicio_id === te.exercicio_id);
@@ -305,7 +315,17 @@ export function getDashboardData(
     };
   });
 
-  const hojeISO = getDataLocalISO(data, APP_TIMEZONE);
+  // Conta por exercício com teto na meta dele: quem faz 5 séries num exercício
+  // de 3 não "adianta" o progresso do treino, senão a barra passaria de 100%
+  // com metade do treino ainda intocada.
+  const progressoHoje = exerciciosDoTreino.reduce<ProgressoDoDia>(
+    (acc, te) => {
+      const seriesDoExercicio = series.filter((s) => s.exercicio_id === te.exercicio_id);
+      const feitasNoExercicio = Math.min(contarSeriesNoDia(seriesDoExercicio, hojeISO), te.num_series);
+      return { feitas: acc.feitas + feitasNoExercicio, total: acc.total + te.num_series };
+    },
+    { feitas: 0, total: 0 },
+  );
 
   return {
     treino: {
@@ -314,6 +334,7 @@ export function getDashboardData(
       totalExercicios: exerciciosVM.length,
     },
     exercicios: exerciciosVM,
+    progressoHoje,
     volumeSemanal: getVolumeSemanal(series),
     volumeSeriesPorGrupo,
     exerciciosSemGrupo,

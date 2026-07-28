@@ -8,7 +8,7 @@ import { AppHeader } from "@/components/layout/app-header";
 import { EditarSerieDialog } from "@/components/registro/editar-serie-dialog";
 import { QualidadeIcon } from "@/components/registro/qualidade-icon";
 import { SoftCard } from "@/components/ui/soft-card";
-import { TypographyEyebrow, TypographyMuted } from "@/components/ui/typography";
+import { TypographyEyebrow, TypographyMuted, TypographySectionTitle } from "@/components/ui/typography";
 import { formatCarga } from "@/lib/dashboard";
 import { useAppStore } from "@/lib/store";
 import { APP_TIMEZONE } from "@/lib/timezone";
@@ -133,7 +133,7 @@ export default function ExercicioHistoricoPage() {
             </SoftCard>
 
             <section className="flex flex-col gap-2.5">
-              <TypographyEyebrow>TODAS AS SÉRIES ({seriesRecentePrimeiro.length})</TypographyEyebrow>
+              <TypographySectionTitle>Todas as séries ({seriesRecentePrimeiro.length})</TypographySectionTitle>
               <div className="flex flex-col gap-2">
                 {/* A linha inteira abre a edição (que também apaga). Antes eram
                     dois botões de ícone de 14 e 15px, sem padding e a 8px um do

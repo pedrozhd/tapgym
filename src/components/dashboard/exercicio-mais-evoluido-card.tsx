@@ -30,7 +30,9 @@ export function ExercicioMaisEvoluidoCard({ dados }: Props) {
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
             <TypographyEyebrow>MAIOR EVOLUÇÃO</TypographyEyebrow>
-            <p className="mt-1 truncate text-lg font-bold leading-none">{dados.nome}</p>
+            {/* leading-tight, não leading-none: o overflow-hidden do truncate
+                corta os descendentes quando a linha tem a altura exata da fonte. */}
+            <p className="mt-1 truncate text-lg font-bold leading-tight">{dados.nome}</p>
             <TypographyMuted className="mt-1">
               Volume de {Math.round(dados.volumeInicial)} kg pra {Math.round(dados.volumeAtual)} kg
             </TypographyMuted>

@@ -2,7 +2,7 @@
 
 import { AppHeader } from "@/components/layout/app-header";
 import { ExercicioRow } from "@/components/dashboard/exercicio-row";
-import { TypographyEyebrow, TypographyMuted } from "@/components/ui/typography";
+import { TypographyMuted, TypographySectionTitle } from "@/components/ui/typography";
 import { getResumoExercicio } from "@/lib/dashboard";
 import { useAppStore } from "@/lib/store";
 import type { Exercicio } from "@/lib/types";
@@ -51,7 +51,7 @@ export default function ExerciciosPage() {
           <>
             {grupos.map((g) => (
               <section key={g.treino.id} className="flex flex-col gap-2.5">
-                <TypographyEyebrow>{g.treino.nome}</TypographyEyebrow>
+                <TypographySectionTitle>{g.treino.nome}</TypographySectionTitle>
                 <div className="flex flex-col gap-2.5">
                   {g.exercicios.map((ex) => (
                     <ExercicioRow
@@ -69,7 +69,7 @@ export default function ExerciciosPage() {
 
             {semTreino.length > 0 && (
               <section className="flex flex-col gap-2.5">
-                <TypographyEyebrow>SEM TREINO ATRIBUÍDO</TypographyEyebrow>
+                <TypographySectionTitle>Sem treino atribuído</TypographySectionTitle>
                 <div className="flex flex-col gap-2.5">
                   {semTreino.map((ex) => (
                     <ExercicioRow

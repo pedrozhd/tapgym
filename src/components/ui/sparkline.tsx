@@ -47,11 +47,25 @@ function getSparkCoordinates({
   const verticalPadding = 4;
   const innerWidth = width - horizontalPadding * 2;
   const innerHeight = height - verticalPadding * 2;
-  return data.map((point, index) => {
+  // Série sem variação (todos os valores iguais, incluindo o caso de um ponto
+  // só) não tem como ser distribuída no range: caía toda na base, encostada na
+  // borda, parecendo erro de render em vez de "valor estável". No meio da
+  // altura, lê como platô.
+  const flat = max === min;
+  const points = data.map((point, index) => {
     const x = horizontalPadding + (index / Math.max(data.length - 1, 1)) * innerWidth;
-    const y = verticalPadding + innerHeight - ((point.value - min) / range) * innerHeight;
+    const y = flat ? height / 2 : verticalPadding + innerHeight - ((point.value - min) / range) * innerHeight;
     return { x, y };
   });
+  // Um ponto só não forma segmento — o path sairia como um `M` solitário, sem
+  // nada visível. Repetido nas duas pontas, vira uma reta na largura toda.
+  if (points.length === 1) {
+    return [
+      { x: horizontalPadding, y: points[0].y },
+      { x: width - horizontalPadding, y: points[0].y },
+    ];
+  }
+  return points;
 }
 
 function buildSharpSparkPath(points: readonly SparkCoordinate[]) {
