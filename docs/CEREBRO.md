@@ -189,20 +189,22 @@ Duas rotas, autenticadas por `profiles.api_token` (não por sessão). Usam a ser
 ```
 GET /api/hoje?token=...
   { ok: true,  treino_nome, exercicios: [{ id, nome, num_series, rep_min, rep_max, ultima_carga }] }
-  { ok: false, code: 401, error: "token inválido" }
-  { ok: false, code: 402, error: "assinatura inativa, reative no app" }
-  { ok: false, code: 404, error: "nenhum treino configurado" | "hoje é dia de descanso" }
-  { ok: false, code: 429, error: "muitas requisições, tente novamente em instantes" }
-  { ok: false, code: 500, error: "erro no servidor, tente novamente" }
+  { ok: false, code: 401, error: "Token inválido" }
+  { ok: false, code: 402, error: "Assinatura inativa, reative no app" }
+  { ok: false, code: 404, error: "Nenhum treino configurado" | "Hoje é dia de descanso" }
+  { ok: false, code: 429, error: "Muitas requisições, tente novamente em instantes" }
+  { ok: false, code: 500, error: "Erro no servidor, tente novamente" }
 
 POST /api/registrar
   body { token, exercicio_id, carga, reps, qualidade }   qualidade: boa | razoavel | ruim
   { ok: true }
-  { ok: false, code: 400, error: "campos obrigatórios: ..." }
-  { ok: false, code: 404, error: "exercício não encontrado" }
-  { ok: false, code: 500, error: "não deu para salvar a série, tente novamente" }
+  { ok: false, code: 400, error: "Campos obrigatórios: Token, Exercício, Carga > 0, ..." }
+  { ok: false, code: 404, error: "Exercício não encontrado" }
+  { ok: false, code: 500, error: "Não deu para salvar a série, tente novamente" }
   401 / 402 / 429 como acima
 ```
+
+**`error` é texto de interface, não código de erro.** O Atalhos mostra o valor cru num alerta, então a redação é frase com maiúscula inicial, e o 400 nomeia campos e valores como o usuário os vê no atalho, não como o JSON os manda: "Repetições", não `reps`; "Boa, Razoável ou Ruim", não `boa | razoavel | ruim`. Os valores que a API aceita de fato são os do bloco acima, e não mudaram. Reescrever essas frases é seguro e não quebra atalho instalado, porque o atalho só exibe o valor, nunca compara com texto. O que **não** pode mudar são os nomes dos campos do JSON, de entrada e de saída.
 
 O formato vive em `src/lib/atalho.ts`: `sucesso()`, `falha()` e `rotaAtalho()`. **Use as três em qualquer rota nova do atalho**, em vez de montar `NextResponse.json` à mão.
 

@@ -31,7 +31,7 @@ async function resolvePerfil(
 export const GET = rotaAtalho(async (request: NextRequest) => {
   const { success } = await checkRateLimit(clientIp(request));
   if (!success) {
-    return falha(429, "muitas requisições, tente novamente em instantes");
+    return falha(429, "Muitas requisições, tente novamente em instantes");
   }
 
   const token = request.nextUrl.searchParams.get("token");
@@ -39,14 +39,14 @@ export const GET = rotaAtalho(async (request: NextRequest) => {
   const perfil = await resolvePerfil(admin, token);
 
   if (!perfil) {
-    return falha(401, "token inválido");
+    return falha(401, "Token inválido");
   }
 
   // Esta rota não passa pelo middleware (nem por RLS, por usar a service role
   // key), então o paywall precisa ser checado aqui — senão o atalho continua
   // funcionando depois de a assinatura ser cancelada ou ficar em atraso.
   if (!temAcesso(perfil)) {
-    return falha(402, "assinatura inativa, reative no app");
+    return falha(402, "Assinatura inativa, reative no app");
   }
 
   // Segunda cota, agora pelo token. A de cima é por IP, e um token compartilhado
@@ -54,19 +54,19 @@ export const GET = rotaAtalho(async (request: NextRequest) => {
   // uma. Limitando o token, quem compartilha divide a mesma cota.
   const porToken = await checkRateLimit(`token:${perfil.id}`);
   if (!porToken.success) {
-    return falha(429, "muitas requisições, tente novamente em instantes");
+    return falha(429, "Muitas requisições, tente novamente em instantes");
   }
 
   const userId = perfil.id;
 
   const { data: treinos } = await admin.from("treinos").select("*").eq("user_id", userId);
   if (!treinos || treinos.length === 0) {
-    return falha(404, "nenhum treino configurado");
+    return falha(404, "Nenhum treino configurado");
   }
 
   const treinoDeHoje = getTreinoDeHoje(treinos as Treino[]);
   if (!treinoDeHoje) {
-    return falha(404, "hoje é dia de descanso");
+    return falha(404, "Hoje é dia de descanso");
   }
 
   const { data: treinoExercicios } = await admin

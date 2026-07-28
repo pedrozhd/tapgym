@@ -25,7 +25,9 @@ export function sucesso<T extends object>(data: T = {} as T) {
  * `200 { ok: false, code, error }`.
  *
  * `error` é texto que aparece na tela do usuário: nunca passe mensagem de
- * banco ou de exceção aqui, use `detalhe` para isso. Responder sempre 200
+ * banco ou de exceção aqui, use `detalhe` para isso. O Atalhos mostra o valor
+ * cru num alerta, então escreva como frase, com maiúscula inicial e nomes de
+ * campo em português, não os nomes do JSON. Responder sempre 200
  * apaga a taxa de erro dos painéis da Vercel, que só enxergam status; o log e
  * o header devolvem essa visibilidade.
  */
@@ -51,7 +53,7 @@ export function rotaAtalho(handler: RotaAtalho): RotaAtalho {
     try {
       return await handler(request);
     } catch (erro) {
-      return falha(500, "erro no servidor, tente novamente", erro);
+      return falha(500, "Erro no servidor, tente novamente", erro);
     }
   };
 }
