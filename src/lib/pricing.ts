@@ -7,7 +7,7 @@
  */
 export const PLANO = {
   nome: "Mensal",
-  preco: "R$ 19,90",
+  preco: "R$ 9,90",
   periodo: "por mês",
   beneficios: [
     "Registro ilimitado de séries",

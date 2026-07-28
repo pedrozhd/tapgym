@@ -47,7 +47,7 @@ O produto tem um atalho (app Atalhos) que registra uma série a partir da tela d
 
 ## 3. Modelo de acesso e cobrança
 
-Assinatura mensal de **R$ 19,90**. O app inteiro é pago: sem acesso, nada funciona.
+Assinatura mensal de **R$ 9,90**. O app inteiro é pago: sem acesso, nada funciona.
 
 ### A regra única
 
