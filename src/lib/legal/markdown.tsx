@@ -11,30 +11,39 @@ export async function lerLegalMarkdown(nome: "privacidade" | "termos"): Promise<
 
 function inline(text: string): ReactNode[] {
   const parts: ReactNode[] = [];
-  const re = /\[([^\]]+)\]\(([^)]+)\)/g;
+  // Links e negrito (`**texto**`), na mesma passagem.
+  const re = /(\[([^\]]+)\]\(([^)]+)\))|(\*\*([^*]+)\*\*)/g;
   let last = 0;
   let match: RegExpExecArray | null;
   let key = 0;
   while ((match = re.exec(text)) !== null) {
     if (match.index > last) parts.push(text.slice(last, match.index));
-    const href = match[2];
-    const label = match[1];
-    if (href.startsWith("/")) {
-      parts.push(
-        <Link key={key++} href={href} className="font-semibold text-primary underline-offset-4 hover:underline">
-          {label}
-        </Link>,
-      );
+    if (match[1]) {
+      const label = match[2]!;
+      const href = match[3]!;
+      if (href.startsWith("/")) {
+        parts.push(
+          <Link key={key++} href={href} className="font-semibold text-primary underline-offset-4 hover:underline">
+            {label}
+          </Link>,
+        );
+      } else {
+        parts.push(
+          <a
+            key={key++}
+            href={href}
+            className="font-semibold text-primary underline-offset-4 hover:underline"
+            rel={href.startsWith("mailto:") ? undefined : "noopener noreferrer"}
+          >
+            {label}
+          </a>,
+        );
+      }
     } else {
       parts.push(
-        <a
-          key={key++}
-          href={href}
-          className="font-semibold text-primary underline-offset-4 hover:underline"
-          rel={href.startsWith("mailto:") ? undefined : "noopener noreferrer"}
-        >
-          {label}
-        </a>,
+        <strong key={key++} className="font-semibold text-foreground">
+          {match[5]}
+        </strong>,
       );
     }
     last = match.index + match[0].length;
@@ -45,7 +54,7 @@ function inline(text: string): ReactNode[] {
 
 /**
  * Parser mínimo para os docs legais (sem MDX).
- * Suporta: `#`, `##`, listas `- `, parágrafos, links `[texto](url)`.
+ * Suporta: `#`, `##`, listas `- `, parágrafos, links `[t](u)`, negrito `**t**`.
  */
 export function renderLegalMarkdown(md: string): ReactNode {
   const lines = md.replace(/\r\n/g, "\n").split("\n");
