@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { GoogleButton } from "@/components/auth/google-button";
+import { Turnstile, type TurnstileHandle } from "@/components/auth/turnstile";
 import { Input } from "@/components/ui/input";
 import { TypographyLead } from "@/components/ui/typography";
 import { createClient } from "@/lib/supabase/client";
@@ -68,6 +69,14 @@ export function LoginForm({ modoInicial }: { modoInicial: Modo }) {
   const [reenviado, setReenviado] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
+  // Um widget para entrar/criar, outro para o reenvio: são telas diferentes
+  // (a segunda substitui a primeira no JSX) e cada token do Turnstile só vale
+  // para uma chamada.
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileHandle>(null);
+  const [captchaTokenReenvio, setCaptchaTokenReenvio] = useState<string | null>(null);
+  const turnstileReenvioRef = useRef<TurnstileHandle>(null);
+
   useEffect(() => {
     if (cooldown <= 0) return;
     const id = window.setTimeout(() => setCooldown((s) => s - 1), 1000);
@@ -81,8 +90,13 @@ export function LoginForm({ modoInicial }: { modoInicial: Modo }) {
     const supabase = createClient();
 
     if (modo === "entrar") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: senha,
+        options: { captchaToken: captchaToken ?? undefined },
+      });
       setCarregando(false);
+      turnstileRef.current?.reset();
       if (error) {
         setErro(traduzErro(error.message));
         return;
@@ -95,9 +109,10 @@ export function LoginForm({ modoInicial }: { modoInicial: Modo }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password: senha,
-      options: { data: { nome: nome.trim() } },
+      options: { data: { nome: nome.trim() }, captchaToken: captchaToken ?? undefined },
     });
     setCarregando(false);
+    turnstileRef.current?.reset();
     if (error) {
       // `status`/`code` não aparecem na tela mas são o que identifica a causa
       // (ex.: 500 + unexpected_failure = falha de SMTP no envio) quando a
@@ -123,7 +138,12 @@ export function LoginForm({ modoInicial }: { modoInicial: Modo }) {
     if (!aguardandoConfirmacao || cooldown > 0) return;
     setErro(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.resend({ type: "signup", email: aguardandoConfirmacao });
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: aguardandoConfirmacao,
+      options: { captchaToken: captchaTokenReenvio ?? undefined },
+    });
+    turnstileReenvioRef.current?.reset();
     if (error) {
       setErro(traduzErro(error.message));
       return;
@@ -158,12 +178,14 @@ export function LoginForm({ modoInicial }: { modoInicial: Modo }) {
           {erro && <p className="text-sm text-destructive">{erro}</p>}
         </div>
 
+        <Turnstile ref={turnstileReenvioRef} onToken={setCaptchaTokenReenvio} />
+
         <div className="mt-3 flex flex-col gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={onReenviar}
-            disabled={cooldown > 0}
+            disabled={cooldown > 0 || !captchaTokenReenvio}
             className="h-12 rounded-xl text-[15px] font-bold"
           >
             {cooldown > 0 ? `Reenviar e-mail em ${cooldown}s` : "Reenviar e-mail"}
@@ -258,9 +280,11 @@ export function LoginForm({ modoInicial }: { modoInicial: Modo }) {
           {erro && <p className="text-sm text-destructive">{erro}</p>}
         </div>
 
+        <Turnstile ref={turnstileRef} onToken={setCaptchaToken} />
+
         <Button
           type="submit"
-          disabled={carregando}
+          disabled={carregando || !captchaToken}
           className="shadow-soft-elevated h-12 rounded-xl text-[15px] font-bold"
         >
           {carregando ? "Aguarde..." : modo === "entrar" ? "Entrar" : "Criar conta"}
