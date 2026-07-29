@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { mesmaOrigem } from "@/lib/mesma-origem";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
 
 /**
@@ -15,7 +16,11 @@ import { checkRateLimit, clientIp } from "@/lib/ratelimit";
  * Mesmo formato do default da coluna (0003): 24 bytes aleatórios em hex.
  */
 export async function POST(request: NextRequest) {
-  const { success } = await checkRateLimit(clientIp(request));
+  if (!mesmaOrigem(request)) {
+    return NextResponse.json({ error: "origem não permitida" }, { status: 403 });
+  }
+
+  const { success } = await checkRateLimit(`rotate:${clientIp(request)}`);
   if (!success) {
     return NextResponse.json({ error: "muitas requisições, tente novamente em instantes" }, { status: 429 });
   }
@@ -35,7 +40,8 @@ export async function POST(request: NextRequest) {
   const { error } = await admin.from("profiles").update({ api_token: novoToken }).eq("id", user.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[token/rotate]", error.message);
+    return NextResponse.json({ error: "não deu para gerar o token, tente novamente" }, { status: 500 });
   }
 
   return NextResponse.json({ api_token: novoToken });

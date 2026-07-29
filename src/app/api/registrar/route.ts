@@ -27,7 +27,7 @@ interface RegistrarBody {
  * Responde sempre 200, com erro no corpo. Ver `src/lib/atalho.ts`.
  */
 export const POST = rotaAtalho(async (request: NextRequest) => {
-  const { success } = await checkRateLimit(clientIp(request));
+  const { success } = await checkRateLimit(`registrar:${clientIp(request)}`);
   if (!success) {
     return falha(429, "Muitas requisições, tente novamente em instantes");
   }

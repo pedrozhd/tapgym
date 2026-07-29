@@ -24,7 +24,18 @@ function getRatelimit(): Ratelimit | null {
 
 export async function checkRateLimit(identifier: string): Promise<{ success: boolean }> {
   const limiter = getRatelimit();
-  if (!limiter) return { success: true };
+  if (!limiter) {
+    // Fail-open só é aceitável em dev local. Rodando na Vercel (produção ou
+    // preview, que usam as mesmas credenciais de Supabase/Stripe, ver
+    // docs/CEREBRO.md) sem essas variáveis é incidente de configuração, não
+    // ausência de tráfego a limitar: liberar geral apagaria justamente as
+    // cotas que protegem o token do atalho contra compartilhamento e força bruta.
+    if (process.env.VERCEL_ENV) {
+      console.error("[ratelimit] Upstash não configurado neste ambiente Vercel, negando por padrão");
+      return { success: false };
+    }
+    return { success: true };
+  }
 
   const { success } = await limiter.limit(identifier);
   return { success };

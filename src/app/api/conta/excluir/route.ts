@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
+import { mesmaOrigem } from "@/lib/mesma-origem";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
 
 /**
@@ -10,9 +11,17 @@ import { checkRateLimit, clientIp } from "@/lib/ratelimit";
  * Ordem: cancela assinatura Stripe (se houver) → limpa tabelas de treino →
  * remove profile → deleteUser no Auth. A limpeza explícita evita lixo se o
  * cascade no banco não estiver completo (migrações não vivem neste repo).
+ *
+ * Checagem de origem antes de tudo: é a ação mais destrutiva e irreversível
+ * do app autenticada só por cookie, então é a que mais penaliza depender
+ * apenas do `SameSite=Lax` do cookie de sessão como defesa contra CSRF.
  */
 export async function POST(request: NextRequest) {
-  const { success } = await checkRateLimit(clientIp(request));
+  if (!mesmaOrigem(request)) {
+    return NextResponse.json({ error: "origem não permitida" }, { status: 403 });
+  }
+
+  const { success } = await checkRateLimit(`conta-excluir:${clientIp(request)}`);
   if (!success) {
     return NextResponse.json(
       { error: "Muitas requisições, tente novamente em instantes" },

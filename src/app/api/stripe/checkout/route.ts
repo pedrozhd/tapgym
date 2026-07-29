@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { COLUNAS_ACESSO, naoPrecisaAssinar } from "@/lib/acesso";
+import { mesmaOrigem } from "@/lib/mesma-origem";
+import { checkRateLimit } from "@/lib/ratelimit";
 import { getStripe } from "@/lib/stripe";
 
 export async function POST(request: Request) {
+  if (!mesmaOrigem(request)) {
+    return NextResponse.json({ error: "origem não permitida" }, { status: 403 });
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -11,6 +17,14 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: "não autenticado" }, { status: 401 });
+  }
+
+  // Por usuário, não por IP: o custo é por conta autenticada (uma sessão de
+  // checkout na Stripe por chamada), e abrir checkout é ação rara o bastante
+  // para uma cota apertada não incomodar ninguém legítimo.
+  const { success } = await checkRateLimit(`stripe:checkout:${user.id}`);
+  if (!success) {
+    return NextResponse.json({ error: "muitas requisições, tente novamente em instantes" }, { status: 429 });
   }
 
   const { data: profile } = await supabase

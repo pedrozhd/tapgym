@@ -41,6 +41,21 @@ export function falha(code: number, error: string, detalhe?: unknown) {
   );
 }
 
+/**
+ * Token do atalho vindo do header `Authorization: Bearer <token>`, com a
+ * query string como fallback (contrato antigo, que fica gravado em log de
+ * acesso). Rotas novas devem preferir o header; o atalho já instalado no
+ * telefone de quem assinou antes desta mudança continua mandando por query
+ * string, e não há como atualizar esse atalho remotamente.
+ */
+export function extrairToken(request: NextRequest): string | null {
+  const header = request.headers.get("authorization");
+  if (header?.startsWith("Bearer ")) {
+    return header.slice("Bearer ".length).trim() || null;
+  }
+  return request.nextUrl.searchParams.get("token");
+}
+
 type RotaAtalho = (request: NextRequest) => Promise<NextResponse>;
 
 /**
