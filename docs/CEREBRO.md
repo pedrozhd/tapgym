@@ -104,7 +104,7 @@ Isso não é conveniência, é desbloqueio. Durante o teste `temAcesso` é `true
 
 ```
 /                    ƒ  landing page
-/login               ƒ  entrar e cadastrar
+/login               ƒ  entrar/cadastrar via Google
 /assinar             ƒ  paywall
 /dashboard           ○  \
 /registro            ○   |  grupo (app), atrás do gate
@@ -116,7 +116,7 @@ Isso não é conveniência, é desbloqueio. Durante o teste `temAcesso` é `true
 As dinâmicas (`ƒ`) são dinâmicas por motivo específico, não por acidente:
 
 - **`/`** lê a sessão. Precisa saber se há usuário logado para trocar "Entrar"/"Criar conta" por "Assinar"/"Sair da conta" e mandar os CTAs direto ao checkout. Custou a renderização estática da página de marketing, e foi decisão consciente.
-- **`/login`** lê `?modo=criar` no server. Feito assim em vez de `useSearchParams` para não precisar de Suspense em volta do formulário.
+- **`/login`** é só Google (`Continuar com Google`). `?modo=criar` nos links antigos ainda funciona como URL, mas a UI é a mesma.
 - **`/assinar`** lê o perfil para distinguir quem terminou o teste de quem nunca teve um.
 
 ### Middleware (`src/lib/supabase/middleware.ts`)
@@ -139,10 +139,10 @@ Roda antes de toda rota. Ordem das decisões:
 ### Do zero até pagar
 
 ```
-LP  →  /login?modo=criar  →  cadastro  →  /dashboard (7 dias)  →  /assinar  →  Stripe
+LP  →  /login  →  Google  →  /dashboard (7 dias)  →  /assinar  →  Stripe
 ```
 
-Os CTAs da LP levam ao cadastro com o modo certo. Antes apontavam para `/login`, que abria no modo "entrar", e o cadastro ficava escondido atrás de um toggle de texto cinza.
+Os CTAs da LP levam ao `/login`. Entrar e criar conta são a mesma ação no Google.
 
 **Logado, os CTAs vão direto ao Stripe.** Um `<form method="POST">` para `/api/stripe/checkout`, sem passar pelo `/assinar`. Antes era "Assinar" → tela → "Assinar": a mesma palavra duas vezes para uma ação, com o preço já visível na LP.
 
@@ -150,11 +150,9 @@ O `/assinar` continua existindo e é necessário: é o destino do gate no middle
 
 ### Google OAuth
 
-Um provider cobre entrar e cadastrar: se o e-mail é novo, a conta é criada. **Vincula à conta existente** quando o e-mail já está cadastrado e confirmado (testado em produção).
+**Único caminho de login/cadastro na UI.** Um provider cobre os dois: e-mail novo cria a conta; e-mail já existente e confirmado **vincula** (testado em produção). Contas antigas criadas por e-mail/senha entram pelo Google com o mesmo e-mail.
 
-O `/auth/callback` não precisou de nenhuma mudança para suportar OAuth: ele já trocava `code` por sessão e redirecionava. Ele também valida o `next` contra open redirect.
-
-Quem entra pelo Google **não tem senha**. Se depois tentar "Entrar" com e-mail e senha, recebe "E-mail ou senha inválidos". Não há recuperação de senha implementada, então hoje essa pessoa não tem como criar uma. É dívida conhecida (seção 10).
+O `/auth/callback` troca o `code` por sessão e redireciona. Também valida o `next` contra open redirect.
 
 ### Preço
 
@@ -329,7 +327,7 @@ Ligada em todas as tabelas, com posse por `auth.uid()`. Em `profiles`, o usuári
 
 | Onde | Valor correto | Por quê |
 |---|---|---|
-| Authentication → Sign In / Providers → **Email** | `Enable email provider` **ligado** | Desligar esse toggle mata login e cadastro por senha. Já aconteceu, por confusão com o toggle de confirmação, e o sintoma foi "Email logins are disabled" em inglês na tela. |
+| Authentication → Sign In / Providers → **Email** | `Enable email provider` **desligado** (recomendado) | A UI não oferece mais e-mail/senha. Deixar ligado só mantém um caminho oculto via API. Contas antigas com senha entram pelo Google (mesmo e-mail). |
 | Authentication → Emails → **Confirm sign up** | **desligado** | Com ele ligado, o cadastro depende de entrega de e-mail funcionar. Uma falha de SMTP derruba o cadastro inteiro. Já aconteceu, e o erro chegava à tela como `{}`. |
 | Authentication → Sign In / Providers → **Google** | habilitado, com Client ID e Secret | |
 | Authentication → **URL Configuration** → Site URL | `https://www.tapgym.com.br` | Se estiver errado, o Supabase descarta o `redirectTo` fora da allowlist e cai na **raiz** do Site URL. Já aconteceu: o login do Google voltava para `http://localhost:3000/?code=...` e nenhuma sessão era criada. |
@@ -387,7 +385,6 @@ Levantadas em revisão de UX e ainda abertas:
 - `ToastPill` não tem `role="status"` nem `aria-live`, então "Série salva" nunca é anunciada. Dura 1.8s, abaixo dos 3 a 5s recomendados.
 
 **Produto**
-- **Não há recuperação de senha nem magic link.** Quem esquece a senha, ou entrou pelo Google e nunca teve uma, não tem caminho de volta. Com o SMTP já configurado, `signInWithOtp` resolveria os dois casos com pouco código.
 - O gráfico de `/exercicio/[id]` esconde os dois eixos Y, que têm escalas diferentes. As duas linhas não são comparáveis e não há como ler um valor sem acertar o toque num ponto.
 - Cinco telas usam "Carregando..." centralizado em vez de skeleton.
 - Tocar na aba Dashboard força `window.location` (reload completo, perde scroll e estado). Deliberado, para garantir dados frescos, mas é a aba mais usada.

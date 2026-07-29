@@ -29,12 +29,12 @@ function GoogleG({ size = 18 }: { size?: number }) {
 }
 
 /**
- * Entrar/cadastrar com Google. Um provider OAuth cobre os dois casos — não há
- * "criar conta com Google" separado: se o e-mail é novo, a conta é criada.
+ * Entrar/cadastrar com Google — único caminho na UI. Um provider OAuth cobre
+ * os dois casos: se o e-mail é novo, a conta é criada.
  *
- * O retorno cai em `/auth/callback`, que já troca o `code` por sessão e manda
+ * O retorno cai em `/auth/callback`, que troca o `code` por sessão e manda
  * pro `next` (padrão `/dashboard`) — de onde o middleware encaminha pra
- * `/assinar` se ainda não houver assinatura. Nenhuma mudança lá foi necessária.
+ * `/assinar` se o trial já venceu e não há assinatura.
  */
 export function GoogleButton({ onErro }: { onErro: (msg: string) => void }) {
   const [carregando, setCarregando] = useState(false);

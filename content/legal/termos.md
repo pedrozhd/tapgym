@@ -14,7 +14,7 @@ O TapGym é um aplicativo para registrar treinos de academia, acompanhar progres
 
 - A conta é pessoal e intransferível.
 - Você precisa ter 18 anos ou mais, ou usar o serviço com autorização de responsável legal.
-- Você é responsável por manter a confidencialidade da senha e do token do atalho.
+- Você é responsável por manter o acesso à conta Google usada no login e pela confidencialidade do token do atalho.
 - Podemos encerrar ou suspender contas que violem estes termos ou abusem do serviço.
 
 ## Assinatura e pagamento

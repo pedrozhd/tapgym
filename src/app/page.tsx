@@ -54,7 +54,7 @@ function CtaAssinar({
 }) {
   if (!logado) {
     return (
-      <Link href="/login?modo=criar" className={className}>
+      <Link href="/login" className={className}>
         {children}
       </Link>
     );

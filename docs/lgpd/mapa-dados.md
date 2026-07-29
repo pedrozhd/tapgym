@@ -8,7 +8,7 @@ Prazo interno para pedidos manuais (ex.: exportação): **15 dias úteis**.
 
 | Dado | Etapa | Finalidade | Base (rascunho) | Onde | Quem acessa | Fornecedor | Retenção | Como titular age |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| E-mail, senha (hash) | Cadastro / login | Criar e autenticar conta | Execução de contrato | Auth Supabase | Titular; admin via service role | Supabase | Enquanto a conta existir | Excluir conta; e-mail |
+| E-mail, nome (Google) | Login OAuth | Criar e autenticar conta | Execução de contrato | Auth Supabase / `profiles` | Titular; admin via service role | Supabase, Google | Enquanto a conta existir | Excluir conta |
 | Nome / metadados Google | Cadastro Google / perfil | Saudação e identificação | Execução de contrato | `profiles`, Auth | Titular | Supabase, Google (OAuth) | Idem | Corrigir nome no app; excluir |
 | Treinos, exercícios, séries | Uso do app / atalho | Prestação do serviço | Execução de contrato | Postgres (RLS) | Titular | Supabase | Idem; apagado na exclusão | Excluir conta; editar no app |
 | `api_token` do atalho | AccountSheet / atalho iOS | Autenticar Atalhos | Execução de contrato | `profiles` | Titular; rotas `/api/hoje`, `/api/registrar` | Supabase, Vercel | Idem; rotacionável | Rotacionar token; excluir |

@@ -8,20 +8,20 @@ Este documento descreve como o TapGym trata dados pessoais. É um rascunho alinh
 
 ## Quais dados tratamos
 
-- Conta: e-mail, senha (hash no provedor de autenticação) ou dados básicos do Google (e-mail, nome), e o nome que você escolhe no app.
+- Conta: e-mail e nome vindos do login com Google, e o nome que você escolhe no app.
 - Treino: exercícios, treinos, dias da semana, séries (carga, repetições, qualidade da execução), histórico de progressão.
 - Atalho do iPhone: token de API associado à sua conta.
 - Cobrança: identificadores de cliente/assinatura na Stripe. Não armazenamos número de cartão no TapGym.
 - Técnicos: cookies de sessão de autenticação; logs e métricas operacionais dos provedores de hospedagem e infraestrutura.
 
-Não pedimos CPF, telefone, endereço nem documentos no cadastro.
+Não pedimos CPF, telefone, endereço, senha própria nem documentos no cadastro.
 
 ## Para que usamos
 
 - Criar e autenticar sua conta.
 - Prestar o serviço de registro e acompanhamento de treino (incluindo o atalho no iPhone).
 - Processar assinatura, trial e cobrança.
-- Enviar e-mails transacionais de autenticação (confirmação, quando aplicável).
+- Enviar e-mails transacionais quando couber (ex.: cobrança pela Stripe).
 - Proteger a conta e o serviço (rate limit, prevenção de abuso).
 - Cumprir obrigações legais quando couber.
 
@@ -34,8 +34,8 @@ Usamos fornecedores que tratam dados para operar o produto:
 - Supabase (banco e autenticação)
 - Vercel (hospedagem)
 - Stripe (pagamentos)
-- Google (login OAuth, se você escolher)
-- Resend (envio de e-mail via SMTP do Supabase)
+- Google (login OAuth)
+- Resend (envio de e-mail via SMTP do Supabase, se usado)
 - Upstash (rate limit)
 
 Pode haver transferência internacional de dados, conforme a localização desses provedores. O TapGym não vende seus dados e não usa seus dados de treino para treinar modelos de IA de terceiros.
