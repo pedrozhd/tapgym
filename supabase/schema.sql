@@ -89,6 +89,14 @@ create table if not exists public.profiles (
   trial_ends_at timestamptz
 );
 
+-- stripe_events -----------------------------------------------------------
+-- Dedup do webhook por event.id (ver src/app/api/stripe/webhook/route.ts).
+-- Só a service role toca esta tabela.
+create table if not exists public.stripe_events (
+  id text primary key,
+  created_at timestamptz not null default now()
+);
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -132,17 +140,41 @@ alter table public.treinos enable row level security;
 alter table public.treino_exercicios enable row level security;
 alter table public.series enable row level security;
 alter table public.profiles enable row level security;
+alter table public.stripe_events enable row level security;
+
+-- Espelha `src/lib/acesso.ts::temAcesso` em SQL. Sem isso, RLS checava só
+-- posse (auth.uid() = user_id) e nunca acesso pago: como o app lê e escreve
+-- direto no PostgREST com a anon key, quem perdia o acesso (trial vencido,
+-- assinatura cancelada) continuava usando o produto inteiro por fora da UI.
+-- Mantida em sincronia manual com acesso.ts, como o resto deste arquivo é
+-- mantido em sincronia com as migrações (ver migração 0013).
+create or replace function public.tem_acesso(uid uuid)
+returns boolean
+language sql
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = uid
+      and (p.is_legacy_free or p.subscription_status = 'active' or p.trial_ends_at > now())
+  );
+$$;
 
 create policy "exercicios: owner full access"
   on public.exercicios for all
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using (auth.uid() = user_id and public.tem_acesso(auth.uid()))
+  with check (auth.uid() = user_id and public.tem_acesso(auth.uid()));
 
 create policy "treinos: owner full access"
   on public.treinos for all
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using (auth.uid() = user_id and public.tem_acesso(auth.uid()))
+  with check (auth.uid() = user_id and public.tem_acesso(auth.uid()));
 
+-- Valida posse dos dois lados (treino e exercício): validar só o treino_id
+-- permitia vincular ao próprio treino um exercicio_id de outra pessoa, que
+-- rotas com service role (/api/hoje) liam sem RLS.
 create policy "treino_exercicios: owner full access"
   on public.treino_exercicios for all
   using (
@@ -150,12 +182,22 @@ create policy "treino_exercicios: owner full access"
       select 1 from public.treinos t
       where t.id = treino_exercicios.treino_id and t.user_id = auth.uid()
     )
+    and exists (
+      select 1 from public.exercicios e
+      where e.id = treino_exercicios.exercicio_id and e.user_id = auth.uid()
+    )
+    and public.tem_acesso(auth.uid())
   )
   with check (
     exists (
       select 1 from public.treinos t
       where t.id = treino_exercicios.treino_id and t.user_id = auth.uid()
     )
+    and exists (
+      select 1 from public.exercicios e
+      where e.id = treino_exercicios.exercicio_id and e.user_id = auth.uid()
+    )
+    and public.tem_acesso(auth.uid())
   );
 
 create policy "series: owner full access"
@@ -165,12 +207,14 @@ create policy "series: owner full access"
       select 1 from public.exercicios e
       where e.id = series.exercicio_id and e.user_id = auth.uid()
     )
+    and public.tem_acesso(auth.uid())
   )
   with check (
     exists (
       select 1 from public.exercicios e
       where e.id = series.exercicio_id and e.user_id = auth.uid()
     )
+    and public.tem_acesso(auth.uid())
   );
 
 -- profiles/api_token são lidos pelo cliente (tela de conta), mas nunca
