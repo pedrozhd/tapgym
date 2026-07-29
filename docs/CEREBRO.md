@@ -313,6 +313,7 @@ Tabelas: `exercicios`, `treinos`, `treino_exercicios`, `series`, `profiles`.
 
 - `nome`: `coalesce(nome, full_name, name)` do metadata. O `nome` vem do nosso formulário; `full_name`/`name` vêm do Google. Sem esse coalesce, quem entra pelo Google fica sem nome e o Dashboard sauda pelo prefixo do e-mail.
 - `trial_ends_at`: `now() + 7 dias`.
+- Seed de treino (migração `0015`): Peito (seg/qui) e Perna (ter/sex) com exercícios exemplo, para o trial não começar no empty state.
 
 ### RLS
 
