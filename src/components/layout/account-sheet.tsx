@@ -31,6 +31,7 @@ interface Perfil {
   stripe_customer_id: string | null;
   is_legacy_free: boolean;
   trial_ends_at: string | null;
+  subscription_status: string | null;
 }
 
 export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: AccountSheetProps) {
@@ -59,7 +60,7 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
     if (!open) return;
     createClient()
       .from("profiles")
-      .select("api_token, stripe_customer_id, is_legacy_free, trial_ends_at")
+      .select("api_token, stripe_customer_id, is_legacy_free, trial_ends_at, subscription_status")
       .single()
       .then(({ data }) => setPerfil(data ?? null));
   }, [open]);

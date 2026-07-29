@@ -16,8 +16,14 @@ import { cn } from "@/lib/utils";
  * atalho pra assinar, porque aí a informação passou a ser urgente.
  */
 export function TrialAviso() {
-  const { trialEndsAt, loading } = useAppStore();
-  const dias = diasRestantesTrial({ trial_ends_at: trialEndsAt });
+  const { trialEndsAt, subscriptionStatus, isLegacyFree, loading } = useAppStore();
+  // Precisa do status da assinatura: `trial_ends_at` continua no futuro depois
+  // do pagamento, e sem isso o aviso ficava na tela de quem já assinou.
+  const dias = diasRestantesTrial({
+    trial_ends_at: trialEndsAt,
+    subscription_status: subscriptionStatus,
+    is_legacy_free: isLegacyFree,
+  });
 
   if (loading || dias === 0) return null;
 

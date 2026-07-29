@@ -29,8 +29,10 @@ interface AppStoreValue extends AppDb {
   loading: boolean;
   userEmail: string | null;
   nome: string | null;
-  /** Fim do teste gratuito (ISO), ou null pra quem é isento, pagante, ou já venceu. */
+  /** Fim do teste gratuito (ISO), ou null pra quem nunca teve teste. */
   trialEndsAt: string | null;
+  subscriptionStatus: string | null;
+  isLegacyFree: boolean;
   addSerie: (exercicioId: string, carga: number, reps: number, qualidade: Qualidade) => Promise<void>;
   updateSerie: (serieId: string, carga: number, reps: number, qualidade: Qualidade) => Promise<void>;
   removeSerie: (serieId: string) => Promise<void>;
@@ -62,6 +64,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [nome, setNome] = useState<string | null>(null);
   const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
+  const [isLegacyFree, setIsLegacyFree] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -81,7 +85,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       supabase.from("exercicios").select("*"),
       supabase.from("treino_exercicios").select("*").order("ordem"),
       supabase.from("series").select("*").order("data"),
-      supabase.from("profiles").select("nome, trial_ends_at").single(),
+      supabase
+        .from("profiles")
+        .select("nome, trial_ends_at, subscription_status, is_legacy_free")
+        .single(),
     ]);
     setDb({
       treinos: treinosRes.data ?? [],
@@ -91,6 +98,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     });
     setNome(profileRes.data?.nome ?? null);
     setTrialEndsAt(profileRes.data?.trial_ends_at ?? null);
+    setSubscriptionStatus(profileRes.data?.subscription_status ?? null);
+    setIsLegacyFree(Boolean(profileRes.data?.is_legacy_free));
     setLoading(false);
   }, [supabase]);
 
@@ -108,6 +117,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       userEmail,
       nome,
       trialEndsAt,
+      subscriptionStatus,
+      isLegacyFree,
 
       async addSerie(exercicioId, carga, reps, qualidade) {
         await supabase.from("series").insert({ exercicio_id: exercicioId, carga, reps, qualidade }).throwOnError();
@@ -277,7 +288,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
       refresh,
     }),
-    [db, loading, userEmail, nome, trialEndsAt, userId, refresh, supabase],
+    [db, loading, userEmail, nome, trialEndsAt, subscriptionStatus, isLegacyFree, userId, refresh, supabase],
   );
 
   return <AppStoreContext.Provider value={value}>{children}</AppStoreContext.Provider>;

@@ -47,8 +47,10 @@ export function naoPrecisaAssinar(perfil: PerfilAcesso | null | undefined): bool
   return Boolean(perfil?.is_legacy_free) || perfil?.subscription_status === "active";
 }
 
-/** Dias inteiros que faltam do teste. 0 quando não há teste vigente. */
+/** Dias inteiros que faltam do teste. 0 quando não há teste vigente ou
+ *  quando a pessoa já assinou / é isenta — o contador some do dashboard. */
 export function diasRestantesTrial(perfil: PerfilAcesso | null | undefined): number {
+  if (naoPrecisaAssinar(perfil)) return 0;
   if (!trialVigente(perfil)) return 0;
   const restante = new Date(perfil!.trial_ends_at!).getTime() - Date.now();
   return Math.max(1, Math.ceil(restante / 86_400_000));
