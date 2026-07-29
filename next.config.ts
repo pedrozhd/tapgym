@@ -3,10 +3,10 @@ import type { NextConfig } from "next";
 const SUPABASE_ORIGIN = "https://otqcniepbpphsdqyujvg.supabase.co";
 const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 
-// Validada em produção via DevTools (Console) sem nenhuma violação: os únicos
-// itens que apareceram (preload malformado, ERR_NAME_NOT_RESOLVED em
-// m.stripe.com) são da própria página hospedada do Stripe Checkout, outra
-// origem, com a CSP dela — não afetados por esta.
+// worker-src blob: é obrigatório pro palco 3D da LP: o DRACOLoader do Three
+// cria um Worker via URL.createObjectURL(Blob). Sem isso a CSP deixa o
+// renderer subir, mas o loadAsync do .glb nunca resolve — loader TAPGYM
+// infinito no desktop (mobile não carrega o 3D).
 const CSP = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' ${TURNSTILE_ORIGIN}`,
@@ -15,6 +15,7 @@ const CSP = [
   "font-src 'self'",
   `connect-src 'self' ${SUPABASE_ORIGIN} ${TURNSTILE_ORIGIN}`,
   `frame-src ${TURNSTILE_ORIGIN}`,
+  "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
   // 'self' sozinho barra o resultado do form: /api/stripe/checkout e

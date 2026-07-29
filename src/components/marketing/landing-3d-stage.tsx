@@ -26,6 +26,14 @@ export default function LandingStage() {
     let cancelado = false;
     const ctx = gsap.context(() => {}, stage);
 
+    // Se o Draco/GLB travar (ex.: CSP barrando o worker blob), loadAsync nunca
+    // rejeita — sem este teto o splash TAPGYM fica pra sempre no desktop.
+    const timeoutId = window.setTimeout(() => {
+      if (cancelado || handle) return;
+      console.error("Timeout ao carregar a cena 3D da landing");
+      setCarregado(true);
+    }, 12_000);
+
     (async () => {
       try {
         const scene = await initScene(canvas, {
@@ -39,6 +47,7 @@ export default function LandingStage() {
           return;
         }
         handle = scene;
+        window.clearTimeout(timeoutId);
         setProgress(100);
         setCarregado(true);
 
@@ -99,12 +108,14 @@ export default function LandingStage() {
         // Falha ao iniciar o WebGL ou carregar o GLB: falha "aberta" (libera a
         // página) em vez de deixar o loader fullscreen travado pra sempre.
         console.error("Falha ao carregar a cena 3D da landing:", error);
+        window.clearTimeout(timeoutId);
         if (!cancelado) setCarregado(true);
       }
     })();
 
     return () => {
       cancelado = true;
+      window.clearTimeout(timeoutId);
       ctx.revert();
       if (handle) handle.dispose();
     };
