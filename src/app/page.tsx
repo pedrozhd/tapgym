@@ -170,10 +170,14 @@ export default async function LandingPage({
         <div className="mx-auto max-w-6xl px-6 py-20 text-center md:py-28">
           <p className="text-[12px] font-bold tracking-[0.14em] text-primary uppercase">Preço</p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Um plano. Sem pegadinha.</h2>
+          <p className="mx-auto mt-3 max-w-[36ch] text-[15px] text-muted-foreground">
+            {PLANO.trial}. Depois, {PLANO.preco} {PLANO.periodo}.
+          </p>
           <div className="mx-auto mt-12 max-w-md rounded-2xl border border-border bg-card p-8 text-left">
             <p className="text-[12px] font-bold tracking-[0.14em] text-primary uppercase">{PLANO.nome}</p>
             <p className="mt-2 text-5xl font-bold tracking-tight">{PLANO.preco}</p>
             <p className="mt-1 text-[14px] text-muted-foreground">{PLANO.periodo}</p>
+            <p className="mt-4 text-[14px] font-semibold text-primary">{PLANO.trial}</p>
             <ul className="mt-6 flex flex-col gap-2.5 text-[14px]">
               {PLANO.beneficios.map((item) => (
                 <li key={item} className="flex items-start gap-2">
@@ -186,7 +190,7 @@ export default async function LandingPage({
               logado={logado}
               className="mt-8 flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-[15px] font-bold text-primary-foreground transition-transform hover:scale-[1.02]"
             >
-              Assinar
+              {logado ? "Assinar" : "Começar grátis"}
             </CtaAssinar>
           </div>
         </div>
@@ -202,15 +206,15 @@ export default async function LandingPage({
           <p className="mx-auto mt-4 max-w-[40ch] text-[15px] text-muted-foreground">
             {logado
               ? "Libere o app e registre sua primeira série hoje."
-              : "Crie sua conta e registre sua primeira série hoje."}
+              : `${PLANO.trial}. Crie sua conta e registre a primeira série hoje.`}
           </p>
-          {/* "Criar conta" só pra quem não tem: quem já criou vê a ação que
-              falta de verdade, que é assinar. */}
+          {/* "Começar grátis" / "Criar conta" só pra quem não tem: quem já criou
+              vê a ação que falta de verdade, que é assinar. */}
           <CtaAssinar
             logado={logado}
             className="mx-auto mt-8 flex h-12 w-full max-w-xs items-center justify-center rounded-xl bg-primary px-6 text-[15px] font-bold text-primary-foreground transition-transform hover:scale-[1.02]"
           >
-            {logado ? "Assinar" : "Criar conta"}
+            {logado ? "Assinar" : "Começar grátis"}
           </CtaAssinar>
         </div>
       </section>

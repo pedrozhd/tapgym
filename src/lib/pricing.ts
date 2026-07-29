@@ -9,6 +9,8 @@ export const PLANO = {
   nome: "Mensal",
   preco: "R$ 9,90",
   periodo: "por mês",
+  /** Copy do teste gratuito — cadastro entra no app sem cartão (Cérebro §3). */
+  trial: "7 dias grátis, sem cartão",
   beneficios: [
     "Registro ilimitado de séries",
     "Histórico e gráficos por exercício",
