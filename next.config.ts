@@ -17,7 +17,12 @@ const CSP = [
   `frame-src ${TURNSTILE_ORIGIN}`,
   "object-src 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  // 'self' sozinho barra o resultado do form: /api/stripe/checkout e
+  // /api/stripe/portal respondem 303 para o Stripe (checkout.stripe.com,
+  // billing.stripe.com), e o Safari/WebKit aplica form-action também ao
+  // redirect final, não só ao destino inicial do <form>. Sem isso, o clique
+  // em "Assinar"/"Gerenciar assinatura" nunca saía do lugar.
+  "form-action 'self' https://checkout.stripe.com https://billing.stripe.com",
   "frame-ancestors 'none'",
 ].join("; ");
 
