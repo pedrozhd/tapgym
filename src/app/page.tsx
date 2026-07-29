@@ -8,8 +8,12 @@ import { createClient } from "@/lib/supabase/server";
 import { PLANO } from "@/lib/pricing";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 
+// Reflete o seed automático (migração 0015): a conta nasce com Peito/Perna
+// montados, então "montar treino" deixou de ser um passo do usuário. Chegar
+// na primeira série caiu de 3 passos pra 2; o 3º card vira o benefício
+// seguinte (evolução), não mais um passo até a primeira série.
 const PASSOS = [
-  { numero: "1", titulo: "Monte seu treino", descricao: "Estruture seus dias e exercícios do seu jeito, sem modelos fixos." },
+  { numero: "1", titulo: "Entre com o Google", descricao: "A conta já nasce com Peito e Perna montados: nada pra configurar antes de treinar." },
   { numero: "2", titulo: "Registre a série", descricao: "Carga, reps e qualidade em três toques, entre uma série e outra." },
   { numero: "3", titulo: "Veja a evolução", descricao: "Gráfico de carga por exercício e volume semanal, sem esforço." },
 ];
@@ -133,15 +137,32 @@ export default async function LandingPage({
       <section className="border-t border-border">
         <div className="mx-auto max-w-6xl px-6 py-20 md:py-28">
           <p className="text-[12px] font-bold tracking-[0.14em] text-primary uppercase">Como funciona</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Três passos. Toda vez.</h2>
-          <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
-            {PASSOS.map((passo) => (
-              <div key={passo.numero} className="bg-card p-8">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-[13px] font-bold text-primary">
-                  {passo.numero}
-                </span>
-                <h3 className="mt-5 text-[17px] font-bold tracking-tight">{passo.titulo}</h3>
-                <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">{passo.descricao}</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Dois passos até a primeira série.</h2>
+          {/* Stepper: círculo mais linha de conexão, sem caixa de card — a spec
+              da LP pede editorial flat, sem a superfície/sombra que o app usa.
+              Vertical no mobile (ícone à esquerda, texto à direita, linha desce
+              pro próximo círculo); horizontal a partir de md (linha ao lado do
+              círculo, texto embaixo). */}
+          <div className="mt-12 flex flex-col md:flex-row md:items-start md:gap-8">
+            {PASSOS.map((passo, i) => (
+              <div key={passo.numero} className="flex gap-4 md:flex-1 md:flex-col md:gap-0">
+                <div className="flex flex-col items-center md:w-full md:flex-row">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-[15px] font-bold text-primary-foreground">
+                    {passo.numero}
+                  </span>
+                  {i < PASSOS.length - 1 && (
+                    <span
+                      aria-hidden
+                      className="mt-2 h-8 w-px bg-border md:mt-0 md:ml-3 md:h-px md:w-full"
+                    />
+                  )}
+                </div>
+                <div className="pb-8 md:mt-5 md:pb-0">
+                  <h3 className="text-[17px] font-bold tracking-tight">{passo.titulo}</h3>
+                  <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground md:max-w-[26ch]">
+                    {passo.descricao}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
