@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Calendar, Hand, Lock, Target, TrendingUp, Zap } from "lucide-react";
 import LandingHero from "@/components/marketing/landing-hero";
+import { LandingTestimonials } from "@/components/marketing/landing-testimonials";
 import { SairButton } from "@/components/auth/sair-button";
 import { createClient } from "@/lib/supabase/server";
 import { PLANO } from "@/lib/pricing";
@@ -189,6 +190,8 @@ export default async function LandingPage({
           </div>
         </div>
       </section>
+
+      <LandingTestimonials />
 
       <section className="border-t border-border">
         <div className="mx-auto max-w-6xl px-6 py-20 text-center md:py-28">

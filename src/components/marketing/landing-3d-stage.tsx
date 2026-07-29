@@ -6,6 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { initScene, type SceneHandle } from "./three/scene";
 import { PAINEIS } from "./landing-copy";
 import { CicloPalavra } from "./ciclo-palavra";
+import { LandingLoader } from "./landing-loader";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -111,14 +112,7 @@ export default function LandingStage() {
 
   return (
     <>
-      {!carregado && (
-        <div className="rg-loader" role="status">
-          <span className="rg-loader__word">TAPGYM</span>
-          <div className="rg-loader__bar">
-            <div className="rg-loader__bar-fill" style={{ width: `${progress}%` }} />
-          </div>
-        </div>
-      )}
+      {!carregado && <LandingLoader progress={progress} />}
 
       <div className="rg-scroll-progress" aria-hidden>
         <div ref={progressRef} className="rg-scroll-progress__fill" />

@@ -160,6 +160,7 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+  --max-width-container: 1280px;
 }
 
 @layer base {
@@ -252,6 +253,24 @@
 
 @media (prefers-reduced-motion: reduce) {
   .rg-bar-grow {
+    animation: none;
+  }
+}
+
+/* Marquee da seção de depoimentos da LP (Tailwind v4: sem tailwind.config.js). */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
+}
+.animate-marquee {
+  animation: marquee var(--duration, 40s) linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
     animation: none;
   }
 }
