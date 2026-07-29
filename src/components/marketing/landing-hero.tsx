@@ -6,14 +6,17 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { PAINEIS, type Panel } from "./landing-copy";
 import { LandingLoader } from "./landing-loader";
-import { PainelFoco } from "./painel-foco";
 
 // ssr:false só é permitido em Client Component (por isso este wrapper existe).
 // Ver node_modules/next/dist/docs/01-app/02-guides/lazy-loading.md.
-// `loading` cobre o buraco entre decidir desktop e o chunk do palco montar.
 const LandingStage = dynamic(() => import("./landing-3d-stage"), {
   ssr: false,
   loading: () => <LandingLoader />,
+});
+
+// GSAP só entra quando o mobile confirma animação — não no SSR/hidratação.
+const PainelFoco = dynamic(() => import("./painel-foco").then((m) => m.PainelFoco), {
+  ssr: false,
 });
 
 const MOBILE_QUERY = "(max-width: 767px)";
@@ -84,11 +87,17 @@ function MobileHero({ animar }: { animar: boolean }) {
 
       <section className="border-t border-border">
         <div className="mx-auto flex max-w-xl flex-col gap-16 px-6 py-20 text-center">
-          {painesRestantes.map((p, i) => (
-            <PainelFoco key={i} animar={animar}>
-              <PainelResumo p={p} align="center" />
-            </PainelFoco>
-          ))}
+          {painesRestantes.map((p, i) =>
+            animar ? (
+              <PainelFoco key={i} animar>
+                <PainelResumo p={p} align="center" />
+              </PainelFoco>
+            ) : (
+              <div key={i}>
+                <PainelResumo p={p} align="center" />
+              </div>
+            ),
+          )}
         </div>
       </section>
     </>

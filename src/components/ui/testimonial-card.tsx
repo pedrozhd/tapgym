@@ -1,10 +1,8 @@
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export interface TestimonialAuthor {
   name: string;
   handle: string;
-  avatar: string;
 }
 
 export interface TestimonialCardProps {
@@ -12,6 +10,23 @@ export interface TestimonialCardProps {
   text: string;
   href?: string;
   className?: string;
+}
+
+/** Avatar local (iniciais) — sem Unsplash/Radix no critical path da LP. */
+function Iniciais({ name }: { name: string }) {
+  const iniciais = name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+  return (
+    <span
+      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary text-[13px] font-bold text-foreground"
+      aria-hidden
+    >
+      {iniciais}
+    </span>
+  );
 }
 
 export function TestimonialCard({ author, text, href, className }: TestimonialCardProps) {
@@ -24,10 +39,7 @@ export function TestimonialCard({ author, text, href, className }: TestimonialCa
   const body = (
     <>
       <div className="flex items-center gap-3">
-        <Avatar className="h-12 w-12">
-          <AvatarImage src={author.avatar} alt={author.name} loading="lazy" decoding="async" />
-          <AvatarFallback>{author.name.slice(0, 1)}</AvatarFallback>
-        </Avatar>
+        <Iniciais name={author.name} />
         <div className="flex flex-col items-start gap-1">
           <h3 className="text-[15px] leading-none font-semibold">{author.name}</h3>
           <p className="text-[13px] text-muted-foreground">{author.handle}</p>
