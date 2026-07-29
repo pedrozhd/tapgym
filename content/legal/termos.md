@@ -4,7 +4,7 @@
 
 Estes termos regem o uso do TapGym (https://www.tapgym.com.br). Ao criar uma conta ou usar o serviço, você concorda com eles. Leia também a [Política de privacidade](/privacidade).
 
-**Prestador:** a pessoa física responsável pelo TapGym, no Brasil. Contato: [contato@tapgym.com.br](mailto:contato@tapgym.com.br).
+**Prestador:** a pessoa física responsável pelo TapGym, no Brasil. Contato: [contatotapgym@gmail.com](mailto:contatotapgym@gmail.com).
 
 ## O serviço
 
@@ -66,4 +66,4 @@ Estes termos são regidos pelas leis da República Federativa do Brasil. Fica el
 
 ## Contato
 
-[contato@tapgym.com.br](mailto:contato@tapgym.com.br)
+[contatotapgym@gmail.com](mailto:contatotapgym@gmail.com)

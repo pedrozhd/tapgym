@@ -416,7 +416,7 @@ O produto trata dados pessoais (conta, treino, cobrança via Stripe). Documenta�
 | Plano de incidente (interno) | `docs/lgpd/incidente.md` |
 | Spec | `docs/superpowers/specs/2026-07-29-lgpd-minima-lancamento-design.md` |
 
-Exclusão self-serve: AccountSheet → Excluir conta → `POST /api/conta/excluir`. Contato único (produto e privacidade): `contato@tapgym.com.br`. Controlador descrito como pessoa física responsável pelo TapGym até haver empresa formal.
+Exclusão self-serve: AccountSheet → Excluir conta → `POST /api/conta/excluir`. Contato único (produto e privacidade): `contatotapgym@gmail.com`. Controlador descrito como pessoa física responsável pelo TapGym até haver empresa formal.
 
 Middleware libera `/privacidade` e `/termos` para anônimo e para logado sem assinatura (além da LP e do `/assinar`).
 

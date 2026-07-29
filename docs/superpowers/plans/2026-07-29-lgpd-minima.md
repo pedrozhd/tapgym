@@ -12,7 +12,7 @@
 
 - Sem dependência nova (sem MDX).
 - Copy sem travessão (`—`).
-- Contato único: `contato@tapgym.com.br` (produto e privacidade).
+- Contato único: `contatotapgym@gmail.com` (produto e privacidade).
 - Texto legal = rascunho fiel à stack; controlador como pessoa física até haver empresa.
 - Verificação: `npm run lint`, `npx tsc --noEmit`, `npm run build`.
 

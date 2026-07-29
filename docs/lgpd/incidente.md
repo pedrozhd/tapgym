@@ -4,7 +4,7 @@ Checklist operacional interno. Não é parecer jurídico. Referência de prazo d
 ANPD para comunicação (quando aplicável): em linhas gerais, até **3 dias úteis**
 após o conhecimento do incidente pelo controlador.
 
-Contato interno: fundador + `contato@tapgym.com.br`
+Contato interno: fundador + `contatotapgym@gmail.com`
 
 ## 1. Acionar
 
