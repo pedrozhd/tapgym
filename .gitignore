@@ -36,10 +36,6 @@ yarn-error.log*
 # vercel
 .vercel
 
-# supabase — schema/migrations são aplicados direto no projeto, não fazem
-# parte do build da aplicação
-supabase/**/*.sql
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
