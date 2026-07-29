@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sheet";
 import { createClient } from "@/lib/supabase/client";
 import { diasRestantesTrial } from "@/lib/acesso";
+import { CONTATO_EMAIL } from "@/lib/legal/contato";
 
 interface AccountSheetProps {
   open: boolean;
@@ -115,7 +116,7 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
       onOpenChange(false);
       router.replace("/");
     } catch {
-      setErroExclusao("Não deu pra excluir a conta. Tenta de novo ou escreva para privacidade@tapgym.com.br.");
+      setErroExclusao(`Não deu pra excluir a conta. Tenta de novo ou escreva para ${CONTATO_EMAIL}.`);
       setExcluindo(false);
     }
   }
@@ -247,7 +248,7 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
             <div className="flex flex-col gap-2 rounded-xl border border-destructive/40 bg-background p-3">
               <p className="text-xs leading-relaxed text-muted-foreground">
                 Apaga treinos, histórico e a conta. Assinatura deixa de cobrar. Não tem volta. Dúvidas:{" "}
-                privacidade@tapgym.com.br
+                {CONTATO_EMAIL}
               </p>
               <div className="flex gap-2">
                 <Button

@@ -4,7 +4,7 @@
 
 Estes termos regem o uso do TapGym (https://www.tapgym.com.br). Ao criar uma conta ou usar o serviço, você concorda com eles. Leia também a [Política de privacidade](/privacidade).
 
-**Prestador:** [PREENCHER: razão social], CNPJ [PREENCHER], Brasil. Contato: [privacidade@tapgym.com.br](mailto:privacidade@tapgym.com.br).
+**Prestador:** a pessoa física responsável pelo TapGym, no Brasil. Contato: [contato@tapgym.com.br](mailto:contato@tapgym.com.br).
 
 ## O serviço
 
@@ -62,8 +62,8 @@ Podemos alterar estes termos. A data no topo indica a versão vigente. O uso con
 
 ## Lei e foro
 
-Estes termos são regidos pelas leis da República Federativa do Brasil. Fica eleito o foro da comarca de [PREENCHER: cidade/UF], com renúncia a qualquer outro, por mais privilegiado que seja, salvo direitos do consumidor em contrário.
+Estes termos são regidos pelas leis da República Federativa do Brasil. Fica eleito o foro do domicílio do usuário quando aplicável a relação de consumo, ou o foro do domicílio do prestador, com renúncia a qualquer outro, por mais privilegiado que seja, salvo direitos do consumidor em contrário.
 
 ## Contato
 
-[privacidade@tapgym.com.br](mailto:privacidade@tapgym.com.br)
+[contato@tapgym.com.br](mailto:contato@tapgym.com.br)

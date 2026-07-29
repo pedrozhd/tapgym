@@ -4,7 +4,7 @@
 
 Este documento descreve como o TapGym trata dados pessoais. É um rascunho alinhado à arquitetura atual do produto. Não substitui revisão jurídica.
 
-**Controlador:** [PREENCHER: razão social], CNPJ [PREENCHER], Brasil. Contato de privacidade: [privacidade@tapgym.com.br](mailto:privacidade@tapgym.com.br).
+**Controlador:** a pessoa física responsável pelo TapGym, no Brasil. Contato (também para privacidade e pedidos de titulares): [contato@tapgym.com.br](mailto:contato@tapgym.com.br).
 
 ## Quais dados tratamos
 
@@ -54,9 +54,9 @@ Você pode:
 
 - Acessar e corrigir o nome no próprio app
 - Excluir a conta pelo app (Conta → Excluir conta), o que apaga treinos e histórico associados
-- Pedir informações sobre o tratamento pelo e-mail [privacidade@tapgym.com.br](mailto:privacidade@tapgym.com.br)
+- Pedir informações sobre o tratamento pelo e-mail [contato@tapgym.com.br](mailto:contato@tapgym.com.br)
 
-Pedidos feitos por e-mail (por exemplo, exportação manual nesta fase) são tratados pelo time com prazo interno documentado no mapa de dados do produto.
+Pedidos feitos por e-mail (por exemplo, exportação manual nesta fase) são tratados com prazo interno documentado no mapa de dados do produto.
 
 ## Segurança
 
@@ -68,6 +68,6 @@ Podemos atualizar esta política. A data no topo indica a versão vigente. Mudan
 
 ## Contato
 
-Dúvidas sobre privacidade: [privacidade@tapgym.com.br](mailto:privacidade@tapgym.com.br).
+Dúvidas sobre o produto ou sobre privacidade: [contato@tapgym.com.br](mailto:contato@tapgym.com.br).
 
 Veja também os [Termos de uso](/termos).

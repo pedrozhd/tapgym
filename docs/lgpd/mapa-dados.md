@@ -3,7 +3,7 @@
 Registro interno das operações de tratamento do TapGym, no espírito do modelo
 simplificado da ANPD para agentes de pequeno porte. Não é parecer jurídico.
 
-Contato titular: `privacidade@tapgym.com.br`  
+Contato titular: `contato@tapgym.com.br`  
 Prazo interno para pedidos manuais (ex.: exportação): **15 dias úteis**.
 
 | Dado | Etapa | Finalidade | Base (rascunho) | Onde | Quem acessa | Fornecedor | Retenção | Como titular age |
@@ -26,4 +26,4 @@ Supabase, Vercel, Stripe, Google OAuth, Resend, Upstash. Pode haver transferênc
 - TapGym atua como **controlador** dos dados dos próprios usuários (B2C).
 - Não há analytics/pixel no app neste momento.
 - Não há uso de dados de treino para treinar IA de terceiros pelo TapGym.
-- Placeholders de razão social/CNPJ ainda constam na política pública.
+- Placeholders de empresa/CNPJ não se aplicam enquanto o produto for operado por pessoa física; o contato único é `contato@tapgym.com.br`.

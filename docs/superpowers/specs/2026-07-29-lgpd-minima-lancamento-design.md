@@ -1,7 +1,7 @@
 # LGPD mínima para lançamento público — Design
 
 Data: 2026-07-29  
-Status: implementado (código); placeholders CNPJ/razão social e caixa de e-mail pendentes de ops
+Status: implementado (código); ops: garantir caixa `contato@tapgym.com.br` no DNS/Resend
 Artigo de referência: [LGPD para SaaS e microSaaS (TOGETHER)](https://togetherprivacy.tech/blog/lgpd-para-saas-e-microsaas-cuidados-antes-de-lancar-app)
 
 ## Objetivo
