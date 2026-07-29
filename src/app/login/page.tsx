@@ -1,4 +1,5 @@
 import { LoginForm } from "@/components/auth/login-form";
+import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 
 /**
  * `?modo=criar` abre a tela já no cadastro. Os CTAs da LP ("Assinar", "Criar
@@ -26,9 +27,12 @@ export default async function LoginPage({
         <LoginForm modoInicial={modo === "criar" ? "criar" : "entrar"} />
       </div>
 
-      <p className="mt-10 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} TapGym. Todos os direitos reservados.
-      </p>
+      <div className="mt-10 flex flex-col items-center gap-2">
+        <LegalFooterLinks />
+        <p className="text-center text-xs text-muted-foreground">
+          © {new Date().getFullYear()} TapGym. Todos os direitos reservados.
+        </p>
+      </div>
     </div>
   );
 }

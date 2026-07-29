@@ -4,7 +4,7 @@ Documento de referência do sistema: o que existe, por que existe, e o que mora 
 
 Escrito para quem (pessoa ou agente) chega sem contexto e precisa mexer sem quebrar decisões já tomadas. Não é changelog: o `git log` já conta o que mudou. Aqui está o **porquê**, que é o que se perde.
 
-Última revisão: 2026-07-27.
+Última revisão: 2026-07-29.
 
 ---
 
@@ -404,7 +404,25 @@ Coisas que parecem candidatas óbvias a "simplificar" e não são:
 
 ---
 
-## 13. Como verificar
+## 13. Privacidade (LGPD mínima)
+
+O produto trata dados pessoais (conta, treino, cobrança via Stripe). Documentação viva:
+
+| O quê | Onde |
+|---|---|
+| Política pública | `/privacidade` ← `content/legal/privacidade.md` |
+| Termos públicos | `/termos` ← `content/legal/termos.md` |
+| Mapa de dados (interno) | `docs/lgpd/mapa-dados.md` |
+| Plano de incidente (interno) | `docs/lgpd/incidente.md` |
+| Spec | `docs/superpowers/specs/2026-07-29-lgpd-minima-lancamento-design.md` |
+
+Exclusão self-serve: AccountSheet → Excluir conta → `POST /api/conta/excluir`. Contato: `privacidade@tapgym.com.br` (criar/encaminhar a caixa no DNS). Placeholders de razão social/CNPJ ainda precisam ser preenchidos nos `.md` legais.
+
+Middleware libera `/privacidade` e `/termos` para anônimo e para logado sem assinatura (além da LP e do `/assinar`).
+
+---
+
+## 14. Como verificar
 
 ```bash
 npm run lint

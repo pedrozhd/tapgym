@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { BlurCommitInput } from "@/components/ui/blur-commit-input";
 import { SairButton } from "@/components/auth/sair-button";
@@ -32,6 +33,7 @@ interface Perfil {
 }
 
 export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: AccountSheetProps) {
+  const router = useRouter();
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [erroCopia, setErroCopia] = useState(false);
@@ -39,6 +41,9 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
   const [confirmandoRotacao, setConfirmandoRotacao] = useState(false);
   const [rotacionando, setRotacionando] = useState(false);
   const [erroRotacao, setErroRotacao] = useState<string | null>(null);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
+  const [erroExclusao, setErroExclusao] = useState<string | null>(null);
 
   async function onCommitNome(novoNome: string) {
     setErroNome(null);
@@ -57,6 +62,14 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
       .single()
       .then(({ data }) => setPerfil(data ?? null));
   }, [open]);
+
+  function handleOpenChange(next: boolean) {
+    if (!next) {
+      setConfirmandoExclusao(false);
+      setErroExclusao(null);
+    }
+    onOpenChange(next);
+  }
 
   const token = perfil?.api_token ?? null;
 
@@ -91,8 +104,24 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
     }
   }
 
+  async function onExcluirConta() {
+    setErroExclusao(null);
+    setExcluindo(true);
+    try {
+      const resposta = await fetch("/api/conta/excluir", { method: "POST" });
+      if (!resposta.ok) throw new Error("falhou");
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      onOpenChange(false);
+      router.replace("/");
+    } catch {
+      setErroExclusao("Não deu pra excluir a conta. Tenta de novo ou escreva para privacidade@tapgym.com.br.");
+      setExcluindo(false);
+    }
+  }
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="bottom" className="mx-auto w-full max-w-[430px] rounded-t-2xl border-border bg-card">
         <SheetHeader>
           <SheetTitle>Conta</SheetTitle>
@@ -212,6 +241,45 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
             </form>
           ) : null}
           <SairButton className="h-11 w-full rounded-xl" />
+
+          {erroExclusao && <p className="text-xs text-destructive">{erroExclusao}</p>}
+          {confirmandoExclusao ? (
+            <div className="flex flex-col gap-2 rounded-xl border border-destructive/40 bg-background p-3">
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Apaga treinos, histórico e a conta. Assinatura deixa de cobrar. Não tem volta. Dúvidas:{" "}
+                privacidade@tapgym.com.br
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setConfirmandoExclusao(false)}
+                  disabled={excluindo}
+                  className="h-11 flex-1 rounded-lg"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={onExcluirConta}
+                  disabled={excluindo}
+                  className="h-11 flex-1 rounded-lg font-bold"
+                >
+                  {excluindo ? "Excluindo..." : "Excluir de vez"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setErroExclusao(null);
+                setConfirmandoExclusao(true);
+              }}
+              className="h-11 w-full rounded-lg text-[13px] text-destructive hover:text-destructive"
+            >
+              Excluir conta
+            </Button>
+          )}
         </SheetFooter>
       </SheetContent>
     </Sheet>

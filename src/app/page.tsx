@@ -6,6 +6,7 @@ import { LandingTestimonialsLazy } from "@/components/marketing/landing-testimon
 import { SairButton } from "@/components/auth/sair-button";
 import { createClient } from "@/lib/supabase/server";
 import { PLANO } from "@/lib/pricing";
+import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 
 const PASSOS = [
   { numero: "1", titulo: "Monte seu treino", descricao: "Estruture seus dias e exercícios do seu jeito, sem modelos fixos." },
@@ -215,8 +216,9 @@ export default async function LandingPage({
       </section>
 
       <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-1 px-6 py-10 text-center text-[13px] text-muted-foreground">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-6 py-10 text-center text-[13px] text-muted-foreground">
           <span className="font-bold text-foreground">TapGym</span>
+          <LegalFooterLinks />
           <span>© 2026 TapGym. Todos os direitos reservados.</span>
         </div>
       </footer>

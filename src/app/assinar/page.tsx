@@ -4,6 +4,7 @@ import { SairButton } from "@/components/auth/sair-button";
 import { createClient } from "@/lib/supabase/server";
 import { COLUNAS_ACESSO, trialVigente, type PerfilAcesso } from "@/lib/acesso";
 import { PLANO } from "@/lib/pricing";
+import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 
 export default async function AssinarPage() {
   // Quem chega aqui com `trial_ends_at` no passado terminou o teste, e merece
@@ -75,6 +76,8 @@ export default async function AssinarPage() {
         </Button>
         <SairButton className="h-12 w-full rounded-xl" />
       </div>
+
+      <LegalFooterLinks className="mt-8" />
     </div>
   );
 }

@@ -35,6 +35,7 @@ export async function updateSession(request: NextRequest) {
   const isAuthRoute = pathname.startsWith("/login");
   const isLandingPage = pathname === "/";
   const isAssinarRoute = pathname === "/assinar";
+  const isLegalRoute = pathname === "/privacidade" || pathname === "/termos";
 
   // `getUser()` acima pode ter renovado o cookie de sessão (via `setAll`),
   // o que só foi gravado em `supabaseResponse`. Redirecionar retornando uma
@@ -51,7 +52,7 @@ export async function updateSession(request: NextRequest) {
     return response;
   }
 
-  if (!user && !isAuthRoute && !isLandingPage) {
+  if (!user && !isAuthRoute && !isLandingPage && !isLegalRoute) {
     return redirectPreservingSession("/login");
   }
 
@@ -65,6 +66,7 @@ export async function updateSession(request: NextRequest) {
     const acesso = temAcesso(profile);
 
     // Quem já tem acesso não precisa ver LP, login nem paywall de novo.
+    // Páginas legais ficam acessíveis (leitura da política/termos).
     if (acesso && (isAuthRoute || isLandingPage || isAssinarRoute)) {
       return redirectPreservingSession("/dashboard");
     }
@@ -73,7 +75,9 @@ export async function updateSession(request: NextRequest) {
     // é a saída do paywall que NÃO custa a sessão. Antes ela também caía no
     // /assinar, então o único jeito de sair daquela tela era deslogar, e quem
     // tinha acabado de criar a conta era obrigado a entrar outra vez.
-    if (!acesso && !isAssinarRoute && !isLandingPage) {
+    // Rotas legais também liberadas: quem está no paywall precisa ler
+    // privacidade/termos sem perder a sessão.
+    if (!acesso && !isAssinarRoute && !isLandingPage && !isLegalRoute) {
       return redirectPreservingSession("/assinar");
     }
   }
