@@ -242,8 +242,10 @@ Sem a variável, o botão do diálogo aparece desabilitado como "Atalho indispon
 
 Dois lugares, dois papéis:
 
-- **Descoberta:** `AtalhoCard`, no topo do Dashboard. Só aparece com treino já cadastrado (sem treino com semana definida o atalho não acha o treino de hoje), só em iOS, e some para sempre quando dispensado. O "para sempre" é por dispositivo via `localStorage`, o que casa com a instalação do atalho ser por dispositivo.
+- **Descoberta:** `AtalhoCard`, no topo do Dashboard. Só aparece com treino já cadastrado (sem treino com semana definida o atalho não acha o treino de hoje), só em iOS, e some para sempre quando dispensado. O "para sempre" é por dispositivo via `localStorage`, o que casa com a instalação do atalho ser por dispositivo. Na **primeira** visita o `ShortcutDialog` abre sozinho (`tapgym-atalho-modal-visto`); fechar o modal não dispensa o card — só "Depois" grava `tapgym-atalho-dispensado`.
 - **Procedimento:** `ShortcutDialog`, com o token dentro e botão de copiar. Antes o passo 2 mandava fechar o diálogo, abrir a AccountSheet pelo avatar, copiar e voltar, no meio de um procedimento que já trocava de app três vezes.
+
+Contas novas já nascem com treino seed (Peito seg/qui, Perna ter/sex) no `handle_new_user` — migração `0015` — para o dashboard e o atalho não dependerem de montar tudo no trial. É exemplo editável, não plano imposto.
 
 O ícone de raio no header e o card ficam escondidos fora do iOS (`src/lib/use-ios.ts`).
 
@@ -297,7 +299,7 @@ Ao editar o atalho, o link do iCloud muda e a variável precisa acompanhar. Só 
 
 ### Schema
 
-`supabase/schema.sql` é o baseline para um projeto novo. `supabase/migrations/` tem o histórico incremental (`0002` a `0012`). **Os dois precisam ser mantidos em sincronia à mão.**
+`supabase/schema.sql` é o baseline para um projeto novo. `supabase/migrations/` tem o histórico incremental (`0002` a `0015`). **Os dois precisam ser mantidos em sincronia à mão.**
 
 Tabelas: `exercicios`, `treinos`, `treino_exercicios`, `series`, `profiles`.
 

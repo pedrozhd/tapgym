@@ -9,6 +9,8 @@ import { TypographyH4, TypographyMuted } from "@/components/ui/typography";
 import { useIOS } from "@/lib/use-ios";
 
 const CHAVE_DISPENSADO = "tapgym-atalho-dispensado";
+/** Evita reabrir o modal a cada refresh sem dispensar o card. */
+const CHAVE_MODAL_VISTO = "tapgym-atalho-modal-visto";
 
 /**
  * Convite pra instalar o atalho, no topo do Dashboard.
@@ -22,6 +24,9 @@ const CHAVE_DISPENSADO = "tapgym-atalho-dispensado";
  * certo: o atalho também é instalado por dispositivo, então quem tem iPhone e
  * iPad precisa do convite nos dois.
  *
+ * Na primeira visita o ShortcutDialog abre sozinho (conta nova com treino
+ * seedado); o card continua disponível se a pessoa só fechou o modal.
+ *
  * Quem chama deve renderizar só quando já existe treino cadastrado. Sem treino
  * com semana definida o atalho não acha o treino de hoje, e o convite viraria
  * uma instrução impossível de concluir.
@@ -33,18 +38,31 @@ export function AtalhoCard() {
   const [dialogoAberto, setDialogoAberto] = useState(false);
 
   useEffect(() => {
+    if (ehIOS !== true) return;
+
     let salvo = false;
+    let modalVisto = false;
     try {
       salvo = window.localStorage.getItem(CHAVE_DISPENSADO) === "1";
+      modalVisto = window.localStorage.getItem(CHAVE_MODAL_VISTO) === "1";
     } catch {
       // Modo privado / storage bloqueado: melhor mostrar o convite do que quebrar.
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDispensado(salvo);
-  }, []);
+    if (!salvo && !modalVisto) {
+      setDialogoAberto(true);
+      try {
+        window.localStorage.setItem(CHAVE_MODAL_VISTO, "1");
+      } catch {
+        // Sem persistência o modal pode reabrir no próximo load. Aceitável.
+      }
+    }
+  }, [ehIOS]);
 
   function dispensar() {
     setDispensado(true);
+    setDialogoAberto(false);
     try {
       window.localStorage.setItem(CHAVE_DISPENSADO, "1");
     } catch {

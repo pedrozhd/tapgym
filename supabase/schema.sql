@@ -103,6 +103,18 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  treino_peito_id uuid;
+  treino_perna_id uuid;
+  ex_supino_reto uuid;
+  ex_supino_incl uuid;
+  ex_crucifixo uuid;
+  ex_triceps uuid;
+  ex_agachamento uuid;
+  ex_leg_press uuid;
+  ex_extensora uuid;
+  ex_flexora uuid;
+  ex_panturrilha uuid;
 begin
   -- `nome` vem do nosso formulário; `full_name`/`name` vêm dos providers OAuth
   -- (Google). nullif(trim(...)) evita que metadata vazia vire um nome.
@@ -122,6 +134,64 @@ begin
     ),
     now() + interval '7 days'
   );
+
+  -- Seed editável (Peito seg/qui, Perna ter/sex) pra o trial não começar vazio.
+  insert into public.treinos (user_id, nome, ordem, dias_semana)
+  values (new.id, 'Peito', 0, array[1, 4])
+  returning id into treino_peito_id;
+
+  insert into public.treinos (user_id, nome, ordem, dias_semana)
+  values (new.id, 'Perna', 1, array[2, 5])
+  returning id into treino_perna_id;
+
+  insert into public.exercicios (user_id, nome, grupo_muscular)
+  values (new.id, 'Supino reto', 'peito')
+  returning id into ex_supino_reto;
+
+  insert into public.exercicios (user_id, nome, grupo_muscular)
+  values (new.id, 'Supino inclinado', 'peito')
+  returning id into ex_supino_incl;
+
+  insert into public.exercicios (user_id, nome, grupo_muscular)
+  values (new.id, 'Crucifixo', 'peito')
+  returning id into ex_crucifixo;
+
+  insert into public.exercicios (user_id, nome, grupo_muscular)
+  values (new.id, 'Tríceps pulley', 'triceps')
+  returning id into ex_triceps;
+
+  insert into public.exercicios (user_id, nome, grupo_muscular)
+  values (new.id, 'Agachamento', 'quadriceps')
+  returning id into ex_agachamento;
+
+  insert into public.exercicios (user_id, nome, grupo_muscular)
+  values (new.id, 'Leg press', 'quadriceps')
+  returning id into ex_leg_press;
+
+  insert into public.exercicios (user_id, nome, grupo_muscular)
+  values (new.id, 'Cadeira extensora', 'quadriceps')
+  returning id into ex_extensora;
+
+  insert into public.exercicios (user_id, nome, grupo_muscular)
+  values (new.id, 'Mesa flexora', 'posterior_de_coxa')
+  returning id into ex_flexora;
+
+  insert into public.exercicios (user_id, nome, grupo_muscular)
+  values (new.id, 'Panturrilha', 'panturrilha')
+  returning id into ex_panturrilha;
+
+  insert into public.treino_exercicios (treino_id, exercicio_id, ordem, num_series, rep_min, rep_max)
+  values
+    (treino_peito_id, ex_supino_reto, 0, 3, 8, 12),
+    (treino_peito_id, ex_supino_incl, 1, 3, 8, 12),
+    (treino_peito_id, ex_crucifixo, 2, 3, 8, 12),
+    (treino_peito_id, ex_triceps, 3, 3, 8, 12),
+    (treino_perna_id, ex_agachamento, 0, 3, 8, 12),
+    (treino_perna_id, ex_leg_press, 1, 3, 8, 12),
+    (treino_perna_id, ex_extensora, 2, 3, 8, 12),
+    (treino_perna_id, ex_flexora, 3, 3, 8, 12),
+    (treino_perna_id, ex_panturrilha, 4, 3, 8, 12);
+
   return new;
 end;
 $$;
