@@ -1,7 +1,7 @@
 # Exportar Meu Treino em PDF — Design
 
 Data: 2026-08-10  
-Status: aprovado para spec; aguardando plano de implementação
+Status: implementado
 
 ## Objetivo
 

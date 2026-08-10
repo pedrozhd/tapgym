@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
+import { FileDown } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
 import { SemanaCard } from "@/components/treino/semana-card";
 import { TreinoDiaCard } from "@/components/treino/treino-dia-card";
+import { Button } from "@/components/ui/button";
 import { TypographyMuted } from "@/components/ui/typography";
+import { exportarTreinosPdf } from "@/lib/export-treino-pdf";
 import { useAppStore } from "@/lib/store";
 import type { Exercicio, TreinoExercicio } from "@/lib/types";
 
@@ -12,6 +16,7 @@ export default function MeuTreinoPage() {
     treinos,
     treinoExercicios,
     exercicios,
+    series,
     loading,
     addTreino,
     renameTreino,
@@ -27,7 +32,23 @@ export default function MeuTreinoPage() {
     updateGrupoMuscular,
   } = useAppStore();
 
+  const [exportando, setExportando] = useState(false);
+  const [erroExport, setErroExport] = useState<string | null>(null);
+
   const treinosOrdenados = [...treinos].sort((a, b) => a.ordem - b.ordem);
+
+  function handleExportarPdf() {
+    setErroExport(null);
+    setExportando(true);
+    try {
+      exportarTreinosPdf(treinos, treinoExercicios, exercicios, series);
+    } catch (err) {
+      console.error("Falha ao exportar PDF do treino:", err);
+      setErroExport("Não foi possível gerar o PDF. Tente de novo.");
+    } finally {
+      setExportando(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -90,6 +111,24 @@ export default function MeuTreinoPage() {
           >
             + Adicionar treino
           </button>
+
+          {treinosOrdenados.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={exportando}
+                onClick={handleExportarPdf}
+                className="h-[52px] w-full rounded-xl text-[15px] font-bold"
+              >
+                <FileDown data-icon="inline-start" />
+                {exportando ? "Gerando…" : "Exportar PDF"}
+              </Button>
+              {erroExport && (
+                <TypographyMuted className="text-center text-destructive">{erroExport}</TypographyMuted>
+              )}
+            </div>
+          )}
         </div>
 
         {treinosOrdenados.length > 0 && <SemanaCard treinos={treinosOrdenados} onSetTreinoDoDia={setTreinoDoDia} />}
