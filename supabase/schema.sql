@@ -97,6 +97,34 @@ create table if not exists public.stripe_events (
   created_at timestamptz not null default now()
 );
 
+-- avisos --------------------------------------------------------------------
+-- Caixa de entrada de comunicados de produto. Sem user_id: conteúdo global,
+-- escrito só pela service role (não existe painel de admin — ver migração
+-- 0016). Confirmação de leitura é a tabela avisos_lidos, abaixo.
+create table if not exists public.avisos (
+  id uuid primary key default gen_random_uuid(),
+  titulo text not null,
+  corpo text not null,
+  link_label text,
+  link_url text,
+  -- true quando o link é o atalho do iPhone: o app Atalhos só existe no iOS,
+  -- e sem isto o botão de instalar apareceria pra quem não tem como usá-lo.
+  link_somente_ios boolean not null default false,
+  publicado_em timestamptz not null default now()
+);
+
+create index if not exists avisos_publicado_em_idx on public.avisos (publicado_em desc);
+
+-- avisos_lidos ----------------------------------------------------------------
+-- Recibo de leitura: uma linha por (aviso, usuário), criada quando o aviso é
+-- aberto. Nunca é apagada nem atualizada — uma vez lido, lido pra sempre.
+create table if not exists public.avisos_lidos (
+  aviso_id uuid not null references public.avisos (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  lido_em timestamptz not null default now(),
+  primary key (aviso_id, user_id)
+);
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -211,6 +239,8 @@ alter table public.treino_exercicios enable row level security;
 alter table public.series enable row level security;
 alter table public.profiles enable row level security;
 alter table public.stripe_events enable row level security;
+alter table public.avisos enable row level security;
+alter table public.avisos_lidos enable row level security;
 
 -- Espelha `src/lib/acesso.ts::temAcesso` em SQL. Sem isso, RLS checava só
 -- posse (auth.uid() = user_id) e nunca acesso pago: como o app lê e escreve
@@ -301,3 +331,20 @@ create policy "profiles: owner can update own name"
 
 revoke update on public.profiles from authenticated;
 grant update (nome) on public.profiles to authenticated;
+
+-- Aviso não é feature paga: quem está com assinatura vencida ou trial
+-- encerrado ainda precisa ver comunicados (inclusive o próprio "sua
+-- assinatura venceu"), então esta policy não passa por `tem_acesso()`
+-- (diferente de exercicios/treinos/series, acima).
+create policy "avisos: authenticated read"
+  on public.avisos for select
+  to authenticated
+  using (true);
+
+create policy "avisos_lidos: owner read"
+  on public.avisos_lidos for select
+  using (auth.uid() = user_id);
+
+create policy "avisos_lidos: owner insert"
+  on public.avisos_lidos for insert
+  with check (auth.uid() = user_id);

@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Exercicio, GrupoMuscular, Qualidade, Serie, Treino, TreinoExercicio } from "@/lib/types";
+import type { Aviso, Exercicio, GrupoMuscular, Qualidade, Serie, Treino, TreinoExercicio } from "@/lib/types";
 
 /**
  * Client-side data layer backed by Supabase. Holds the same four tables in
@@ -21,9 +21,19 @@ interface AppDb {
   exercicios: Exercicio[];
   treinoExercicios: TreinoExercicio[];
   series: Serie[];
+  avisos: Aviso[];
+  /** IDs de avisos já lidos pelo usuário atual. */
+  avisosLidosIds: string[];
 }
 
-const EMPTY_DB: AppDb = { treinos: [], exercicios: [], treinoExercicios: [], series: [] };
+const EMPTY_DB: AppDb = {
+  treinos: [],
+  exercicios: [],
+  treinoExercicios: [],
+  series: [],
+  avisos: [],
+  avisosLidosIds: [],
+};
 
 interface AppStoreValue extends AppDb {
   loading: boolean;
@@ -50,6 +60,8 @@ interface AppStoreValue extends AppDb {
   reordenarExerciciosDoTreino: (treinoExercicioIdsEmOrdem: string[]) => Promise<void>;
   setTreinoDoDia: (diaSemana: number, treinoId: string | null) => Promise<void>;
   updateNome: (nome: string) => Promise<void>;
+  /** Idempotente: reabrir um aviso já lido não gera segunda linha nem segunda viagem de rede. */
+  marcarAvisoLido: (avisoId: string) => Promise<void>;
   /** Rebusca as quatro tabelas do Supabase — usado pra atualizar a tela sem dar F5. */
   refresh: () => Promise<void>;
 }
@@ -80,21 +92,26 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   const refresh = useCallback(async () => {
-    const [treinosRes, exerciciosRes, treinoExerciciosRes, seriesRes, profileRes] = await Promise.all([
-      supabase.from("treinos").select("*").order("ordem"),
-      supabase.from("exercicios").select("*"),
-      supabase.from("treino_exercicios").select("*").order("ordem"),
-      supabase.from("series").select("*").order("data"),
-      supabase
-        .from("profiles")
-        .select("nome, trial_ends_at, subscription_status, is_legacy_free")
-        .single(),
-    ]);
+    const [treinosRes, exerciciosRes, treinoExerciciosRes, seriesRes, avisosRes, avisosLidosRes, profileRes] =
+      await Promise.all([
+        supabase.from("treinos").select("*").order("ordem"),
+        supabase.from("exercicios").select("*"),
+        supabase.from("treino_exercicios").select("*").order("ordem"),
+        supabase.from("series").select("*").order("data"),
+        supabase.from("avisos").select("*").order("publicado_em", { ascending: false }),
+        supabase.from("avisos_lidos").select("aviso_id"),
+        supabase
+          .from("profiles")
+          .select("nome, trial_ends_at, subscription_status, is_legacy_free")
+          .single(),
+      ]);
     setDb({
       treinos: treinosRes.data ?? [],
       exercicios: exerciciosRes.data ?? [],
       treinoExercicios: treinoExerciciosRes.data ?? [],
       series: seriesRes.data ?? [],
+      avisos: avisosRes.data ?? [],
+      avisosLidosIds: (avisosLidosRes.data ?? []).map((l) => l.aviso_id),
     });
     setNome(profileRes.data?.nome ?? null);
     setTrialEndsAt(profileRes.data?.trial_ends_at ?? null);
@@ -283,6 +300,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       async updateNome(novoNome) {
         if (!userId) return;
         await supabase.from("profiles").update({ nome: novoNome }).eq("id", userId).throwOnError();
+        await refresh();
+      },
+
+      async marcarAvisoLido(avisoId) {
+        // Guarda local evita a viagem de rede ao reabrir um aviso já lido; o
+        // upsert com ignoreDuplicates cobre a corrida de duas abas/toques
+        // simultâneos, que o guarda por si só não pega (primary key é
+        // aviso_id + user_id, e um insert duplicado rejeitaria com erro).
+        if (!userId || db.avisosLidosIds.includes(avisoId)) return;
+        await supabase
+          .from("avisos_lidos")
+          .upsert({ aviso_id: avisoId, user_id: userId }, { onConflict: "aviso_id,user_id", ignoreDuplicates: true })
+          .throwOnError();
         await refresh();
       },
 

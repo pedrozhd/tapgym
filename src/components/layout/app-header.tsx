@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Zap } from "lucide-react";
 import { ShortcutDialog } from "@/components/layout/shortcut-dialog";
+import { useAppStore } from "@/lib/store";
 import { useIOS } from "@/lib/use-ios";
 
 interface AppHeaderProps {
@@ -27,6 +28,8 @@ export function AppHeader({
   // O app Atalhos só existe no iOS. Fora dele o botão abriria instruções que
   // não têm como funcionar no aparelho.
   const ehIOS = useIOS();
+  const { avisos, avisosLidosIds } = useAppStore();
+  const avisosNaoLidos = avisos.filter((a) => !avisosLidosIds.includes(a.id)).length;
 
   if (variant === "dashboard") {
     const inicial = userName.trim().charAt(0).toUpperCase();
@@ -50,10 +53,20 @@ export function AppHeader({
           <button
             type="button"
             onClick={onAvatarClick}
-            aria-label="Conta"
-            className="shadow-soft-elevated flex h-10 w-10 items-center justify-center rounded-full bg-card text-[15px] font-bold"
+            aria-label={avisosNaoLidos > 0 ? `Conta, ${avisosNaoLidos} aviso novo` : "Conta"}
+            className="shadow-soft-elevated relative flex h-10 w-10 items-center justify-center rounded-full bg-card text-[15px] font-bold"
           >
             {inicial}
+            {/* Badge estilo ícone do iOS: pousado no canto do avatar, não dentro
+                do fluxo do menu de conta, pra avisar sem precisar abrir nada. */}
+            {avisosNaoLidos > 0 && (
+              <span
+                aria-hidden
+                className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground"
+              >
+                {avisosNaoLidos > 9 ? "9+" : avisosNaoLidos}
+              </span>
+            )}
           </button>
         </div>
 

@@ -78,3 +78,15 @@ export interface VolumeGrupoSemana {
   grupo: GrupoMuscular;
   series: number;
 }
+
+/** Comunicado da caixa de entrada (ver AvisosSheet). Sem user_id: é global. */
+export interface Aviso {
+  id: string;
+  titulo: string;
+  corpo: string;
+  link_label: string | null;
+  link_url: string | null;
+  /** true quando o link só faz sentido no iOS (ex: instalar um atalho). */
+  link_somente_ios: boolean;
+  publicado_em: string;
+}

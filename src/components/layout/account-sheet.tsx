@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Bell } from "lucide-react";
+import { AvisosSheet } from "@/components/layout/avisos-sheet";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BlurCommitInput } from "@/components/ui/blur-commit-input";
 import { SairButton } from "@/components/auth/sair-button";
@@ -17,6 +20,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { diasRestantesTrial } from "@/lib/acesso";
 import { CONTATO_EMAIL } from "@/lib/legal/contato";
+import { useAppStore } from "@/lib/store";
 
 interface AccountSheetProps {
   open: boolean;
@@ -36,6 +40,9 @@ interface Perfil {
 
 export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: AccountSheetProps) {
   const router = useRouter();
+  const { avisos, avisosLidosIds } = useAppStore();
+  const avisosNaoLidos = avisos.filter((a) => !avisosLidosIds.includes(a.id)).length;
+  const [avisosOpen, setAvisosOpen] = useState(false);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [erroCopia, setErroCopia] = useState(false);
@@ -123,167 +130,191 @@ export function AccountSheet({ open, onOpenChange, email, nome, onUpdateNome }: 
   }
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent side="bottom" className="mx-auto w-full max-w-[430px] rounded-t-2xl border-border bg-card">
-        <SheetHeader>
-          <SheetTitle>Conta</SheetTitle>
-          <SheetDescription>{email ?? "Sem e-mail"}</SheetDescription>
-        </SheetHeader>
+    <>
+      <Sheet open={open} onOpenChange={handleOpenChange}>
+        <SheetContent side="bottom" className="mx-auto w-full max-w-[430px] rounded-t-2xl border-border bg-card">
+          <SheetHeader>
+            <SheetTitle>Conta</SheetTitle>
+            <SheetDescription>{email ?? "Sem e-mail"}</SheetDescription>
+          </SheetHeader>
 
-        <div className="flex flex-col gap-2 px-4">
-          <TypographyEyebrow>SEU NOME</TypographyEyebrow>
-          <BlurCommitInput
-            value={nome ?? ""}
-            onCommit={onCommitNome}
-            placeholder="Como quer ser chamado?"
-            className="h-11 rounded-xl border-border bg-background px-3 text-sm"
-          />
-          {erroNome && <p className="text-xs text-destructive">{erroNome}</p>}
-        </div>
-
-        <div className="flex flex-col gap-2 px-4">
-          <TypographyEyebrow>TOKEN DO SHORTCUT</TypographyEyebrow>
-          {/* min-w-0 nos dois níveis, mesma razão do shortcut-dialog: sem isso a
-              largura mínima do token vence o `truncate` e estica o container. */}
-          <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
-            <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
-              {token ?? "Carregando..."}
-            </span>
-            <Button
-              variant="outline"
-              onClick={onCopiar}
-              disabled={!token}
-              className="h-11 shrink-0 rounded-lg px-3"
+          <div className="px-4">
+            {/* Mesmo contador do badge no avatar do AppHeader — este é o
+                lugar de fato, aquele é só o aviso de "tem algo novo aqui". */}
+            <button
+              type="button"
+              onClick={() => setAvisosOpen(true)}
+              className="flex w-full items-center justify-between rounded-xl border border-border bg-background px-3.5 py-3"
             >
-              {copiado ? "Copiado!" : "Copiar"}
-            </Button>
+              <span className="flex items-center gap-2.5 text-sm font-bold">
+                <Bell size={16} className="text-muted-foreground" aria-hidden />
+                Avisos
+              </span>
+              {avisosNaoLidos > 0 && (
+                <Badge variant="primary" appearance="solid" className="h-5 min-w-5 justify-center rounded-full px-1">
+                  {avisosNaoLidos}
+                </Badge>
+              )}
+            </button>
           </div>
-          {erroCopia && (
-            <p className="text-xs text-destructive">
-              Não deu pra copiar. Toque no token e copie manualmente.
-            </p>
-          )}
-          {erroRotacao && <p className="text-xs text-destructive">{erroRotacao}</p>}
 
-          {/* Revogação. O token vale acesso pago, e antes disto um token
-              compartilhado ou vazado era permanente: a coluna tem default no
-              banco e a tela só mostrava e copiava. */}
-          {confirmandoRotacao ? (
-            <div className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3">
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                O token atual para de funcionar na hora. Você vai precisar colar o novo no atalho do iPhone,
-                senão ele deixa de registrar.
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => setConfirmandoRotacao(false)}
-                  disabled={rotacionando}
-                  className="h-11 flex-1 rounded-lg"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={onRotacionar}
-                  disabled={rotacionando}
-                  className="h-11 flex-1 rounded-lg font-bold"
-                >
-                  {rotacionando ? "Gerando..." : "Gerar"}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button
-              variant="ghost"
-              onClick={() => setConfirmandoRotacao(true)}
-              disabled={!token}
-              className="h-11 w-full rounded-lg text-[13px]"
-            >
-              Gerar novo token
-            </Button>
-          )}
-        </div>
+          <div className="flex flex-col gap-2 px-4">
+            <TypographyEyebrow>SEU NOME</TypographyEyebrow>
+            <BlurCommitInput
+              value={nome ?? ""}
+              onCommit={onCommitNome}
+              placeholder="Como quer ser chamado?"
+              className="h-11 rounded-xl border-border bg-background px-3 text-sm"
+            />
+            {erroNome && <p className="text-xs text-destructive">{erroNome}</p>}
+          </div>
 
-        <SheetFooter>
-          {/* Só quem passou pelo Stripe tem portal pra abrir. Antes o botão
-              aparecia pra todos: sem `stripe_customer_id` a rota redireciona
-              pra /assinar, o middleware devolve pro /dashboard e o toque não
-              produzia nada visível. */}
-          {/* O teste vence em silêncio se ninguém avisar: no oitavo dia o app
-              tranca sem nenhum aviso prévio. Este contador é o mínimo. */}
-          {diasRestantesTrial(perfil) > 0 && (
-            <p className="px-1 text-center text-xs text-muted-foreground">
-              {diasRestantesTrial(perfil) === 1
-                ? "Último dia do seu teste gratuito."
-                : `Teste gratuito: ${diasRestantesTrial(perfil)} dias restantes.`}
-            </p>
-          )}
-
-          {perfil?.stripe_customer_id ? (
-            <form action="/api/stripe/portal" method="POST">
-              <Button type="submit" variant="outline" className="h-11 w-full rounded-xl">
-                Gerenciar assinatura
+          <div className="flex flex-col gap-2 px-4">
+            <TypographyEyebrow>TOKEN DO SHORTCUT</TypographyEyebrow>
+            {/* min-w-0 nos dois níveis, mesma razão do shortcut-dialog: sem isso a
+                largura mínima do token vence o `truncate` e estica o container. */}
+            <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
+              <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
+                {token ?? "Carregando..."}
+              </span>
+              <Button
+                variant="outline"
+                onClick={onCopiar}
+                disabled={!token}
+                className="h-11 shrink-0 rounded-lg px-3"
+              >
+                {copiado ? "Copiado!" : "Copiar"}
               </Button>
-            </form>
-          ) : perfil?.is_legacy_free ? (
-            <p className="px-1 text-center text-xs text-muted-foreground">
-              Seu acesso é gratuito e vitalício. Não há assinatura pra gerenciar.
-            </p>
-          ) : perfil ? (
-            // Sem customer no Stripe e sem isenção: está em teste gratuito. Este
-            // ramo devolvia null, e era o único lugar de cobrança do app inteiro,
-            // então quem estava em teste e queria pagar não tinha por onde. A LP
-            // também não servia: durante o teste o middleware manda quem está
-            // logado de volta pro /dashboard.
-            <form action="/api/stripe/checkout" method="POST">
-              <Button type="submit" className="h-11 w-full rounded-xl font-bold">
-                Assinar agora
-              </Button>
-            </form>
-          ) : null}
-          <SairButton className="h-11 w-full rounded-xl" />
-
-          {erroExclusao && <p className="text-xs text-destructive">{erroExclusao}</p>}
-          {confirmandoExclusao ? (
-            <div className="flex flex-col gap-2 rounded-xl border border-destructive/40 bg-background p-3">
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Apaga treinos, histórico e a conta. Assinatura deixa de cobrar. Não tem volta. Dúvidas:{" "}
-                {CONTATO_EMAIL}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => setConfirmandoExclusao(false)}
-                  disabled={excluindo}
-                  className="h-11 flex-1 rounded-lg"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={onExcluirConta}
-                  disabled={excluindo}
-                  className="h-11 flex-1 rounded-lg font-bold"
-                >
-                  {excluindo ? "Excluindo..." : "Excluir de vez"}
-                </Button>
-              </div>
             </div>
-          ) : (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setErroExclusao(null);
-                setConfirmandoExclusao(true);
-              }}
-              className="h-11 w-full rounded-lg text-[13px] text-destructive hover:text-destructive"
-            >
-              Excluir conta
-            </Button>
-          )}
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+            {erroCopia && (
+              <p className="text-xs text-destructive">
+                Não deu pra copiar. Toque no token e copie manualmente.
+              </p>
+            )}
+            {erroRotacao && <p className="text-xs text-destructive">{erroRotacao}</p>}
+
+            {/* Revogação. O token vale acesso pago, e antes disto um token
+                compartilhado ou vazado era permanente: a coluna tem default no
+                banco e a tela só mostrava e copiava. */}
+            {confirmandoRotacao ? (
+              <div className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3">
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  O token atual para de funcionar na hora. Você vai precisar colar o novo no atalho do iPhone,
+                  senão ele deixa de registrar.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setConfirmandoRotacao(false)}
+                    disabled={rotacionando}
+                    className="h-11 flex-1 rounded-lg"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={onRotacionar}
+                    disabled={rotacionando}
+                    className="h-11 flex-1 rounded-lg font-bold"
+                  >
+                    {rotacionando ? "Gerando..." : "Gerar"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                onClick={() => setConfirmandoRotacao(true)}
+                disabled={!token}
+                className="h-11 w-full rounded-lg text-[13px]"
+              >
+                Gerar novo token
+              </Button>
+            )}
+          </div>
+
+          <SheetFooter>
+            {/* Só quem passou pelo Stripe tem portal pra abrir. Antes o botão
+                aparecia pra todos: sem `stripe_customer_id` a rota redireciona
+                pra /assinar, o middleware devolve pro /dashboard e o toque não
+                produzia nada visível. */}
+            {/* O teste vence em silêncio se ninguém avisar: no oitavo dia o app
+                tranca sem nenhum aviso prévio. Este contador é o mínimo. */}
+            {diasRestantesTrial(perfil) > 0 && (
+              <p className="px-1 text-center text-xs text-muted-foreground">
+                {diasRestantesTrial(perfil) === 1
+                  ? "Último dia do seu teste gratuito."
+                  : `Teste gratuito: ${diasRestantesTrial(perfil)} dias restantes.`}
+              </p>
+            )}
+
+            {perfil?.stripe_customer_id ? (
+              <form action="/api/stripe/portal" method="POST">
+                <Button type="submit" variant="outline" className="h-11 w-full rounded-xl">
+                  Gerenciar assinatura
+                </Button>
+              </form>
+            ) : perfil?.is_legacy_free ? (
+              <p className="px-1 text-center text-xs text-muted-foreground">
+                Seu acesso é gratuito e vitalício. Não há assinatura pra gerenciar.
+              </p>
+            ) : perfil ? (
+              // Sem customer no Stripe e sem isenção: está em teste gratuito. Este
+              // ramo devolvia null, e era o único lugar de cobrança do app inteiro,
+              // então quem estava em teste e queria pagar não tinha por onde. A LP
+              // também não servia: durante o teste o middleware manda quem está
+              // logado de volta pro /dashboard.
+              <form action="/api/stripe/checkout" method="POST">
+                <Button type="submit" className="h-11 w-full rounded-xl font-bold">
+                  Assinar agora
+                </Button>
+              </form>
+            ) : null}
+            <SairButton className="h-11 w-full rounded-xl" />
+
+            {erroExclusao && <p className="text-xs text-destructive">{erroExclusao}</p>}
+            {confirmandoExclusao ? (
+              <div className="flex flex-col gap-2 rounded-xl border border-destructive/40 bg-background p-3">
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Apaga treinos, histórico e a conta. Assinatura deixa de cobrar. Não tem volta. Dúvidas:{" "}
+                  {CONTATO_EMAIL}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setConfirmandoExclusao(false)}
+                    disabled={excluindo}
+                    className="h-11 flex-1 rounded-lg"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={onExcluirConta}
+                    disabled={excluindo}
+                    className="h-11 flex-1 rounded-lg font-bold"
+                  >
+                    {excluindo ? "Excluindo..." : "Excluir de vez"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setErroExclusao(null);
+                  setConfirmandoExclusao(true);
+                }}
+                className="h-11 w-full rounded-lg text-[13px] text-destructive hover:text-destructive"
+              >
+                Excluir conta
+              </Button>
+            )}
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      <AvisosSheet open={avisosOpen} onOpenChange={setAvisosOpen} />
+    </>
   );
 }
