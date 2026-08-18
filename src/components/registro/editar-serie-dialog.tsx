@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { QualidadePicker } from "@/components/registro/qualidade-picker";
+import { formatCarga, parseCarga } from "@/lib/dashboard";
 import type { Qualidade, Serie } from "@/lib/types";
 
 interface EditarSerieDialogProps {
@@ -16,6 +17,10 @@ interface EditarSerieDialogProps {
 
 export function EditarSerieDialog({ serie, onOpenChange, onSave, onDelete }: EditarSerieDialogProps) {
   const [carga, setCarga] = useState(0);
+  // Texto separado do número, mesmo motivo do CargaCard: sem isso, "17,"
+  // digitado no meio da edição vira 17 e o input reescreve por cima, comendo
+  // o dígito seguinte.
+  const [textoCarga, setTextoCarga] = useState("");
   const [reps, setReps] = useState(0);
   const [qualidade, setQualidade] = useState<Qualidade | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -30,6 +35,7 @@ export function EditarSerieDialog({ serie, onOpenChange, onSave, onDelete }: Edi
   if (serie && serie.id !== serieIdSincronizado) {
     setSerieIdSincronizado(serie.id);
     setCarga(serie.carga);
+    setTextoCarga(serie.carga === 0 ? "" : formatCarga(serie.carga));
     setReps(serie.reps);
     setQualidade(serie.qualidade);
     setConfirmandoExclusao(false);
@@ -78,10 +84,13 @@ export function EditarSerieDialog({ serie, onOpenChange, onSave, onDelete }: Edi
           <div className="flex flex-1 flex-col gap-1">
             <span className="text-[11px] font-bold text-muted-foreground uppercase">Carga (kg)</span>
             <Input
-              type="number"
               inputMode="decimal"
-              value={carga === 0 ? "" : String(carga)}
-              onChange={(e) => setCarga(parseFloat(e.target.value.replace(",", ".")) || 0)}
+              value={textoCarga}
+              onChange={(e) => {
+                setTextoCarga(e.target.value);
+                setCarga(parseCarga(e.target.value));
+              }}
+              onBlur={() => setTextoCarga(carga === 0 ? "" : formatCarga(carga))}
               className="h-11 rounded-xl text-center text-lg font-bold"
             />
           </div>

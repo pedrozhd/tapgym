@@ -18,8 +18,23 @@ import type {
  * come from `mock-data.ts` or from Supabase queries later.
  */
 
+/**
+ * Exibição de carga em todo o app: "." como separador decimal (não ",") e só
+ * as casas que a carga de fato tem — `numeric(6,2)` no banco permite 2, mas
+ * String() de um float já descarta zero à direita (17.50 -> "17.5").
+ */
 export function formatCarga(carga: number): string {
-  return (Math.round(carga * 10) / 10).toString().replace(".", ",");
+  return (Math.round(carga * 100) / 100).toString();
+}
+
+/**
+ * Inverso de `formatCarga`: texto digitado -> número. Aceita "," como
+ * separador porque é o que o teclado numérico do iPhone digita — vale só
+ * para carga; reps é sempre inteiro, sem essa ambiguidade.
+ */
+export function parseCarga(texto: string): number {
+  const parsed = parseFloat(texto.replace(",", "."));
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 export function getUltimaSerie(seriesDoExercicio: Serie[]): Serie | null {

@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import { formatCarga } from "@/lib/dashboard";
 import { DIAS_SEMANA } from "@/lib/semana";
 import type { Exercicio, Serie, Treino, TreinoExercicio } from "@/lib/types";
 
@@ -38,10 +39,6 @@ function formatarDataPt(iso: string): string {
     return `${m[3]}/${m[2]}/${m[1]}`;
   }
   return new Date(iso).toLocaleDateString("pt-BR");
-}
-
-function formatarCarga(carga: number): string {
-  return Number.isInteger(carga) ? String(carga) : String(carga);
 }
 
 /** true se `candidata` é mais recente que `atual` (data desc, depois id). */
@@ -226,7 +223,7 @@ export function exportarTreinosPdf(
       } else {
         if (ex.recordeCarga) {
           doc.text(
-            `Recorde carga: ${formatarCarga(ex.recordeCarga.carga)} kg (${formatarDataPt(ex.recordeCarga.data)})`,
+            `Recorde carga: ${formatCarga(ex.recordeCarga.carga)} kg (${formatarDataPt(ex.recordeCarga.data)})`,
             margem + 2,
             y,
           );
@@ -239,7 +236,7 @@ export function exportarTreinosPdf(
         }
         if (ex.recordeReps) {
           doc.text(
-            `Recorde reps: ${ex.recordeReps.reps} reps (${formatarDataPt(ex.recordeReps.data)}) · ${formatarCarga(ex.recordeReps.carga)} kg`,
+            `Recorde reps: ${ex.recordeReps.reps} reps (${formatarDataPt(ex.recordeReps.data)}) · ${formatCarga(ex.recordeReps.carga)} kg`,
             margem + 2,
             y,
           );
