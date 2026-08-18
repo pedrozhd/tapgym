@@ -39,15 +39,22 @@ alter table public.avisos_lidos enable row level security;
 -- encerrado ainda precisa ver "sua assinatura venceu, reative" e comunicados
 -- em geral, então esta policy não passa por `tem_acesso()` (diferente de
 -- exercicios/treinos/series).
+--
+-- `drop ... if exists` antes do create: se a migração rodou pela metade
+-- (tabela ok, policy já criada) e o deploy retenta, CREATE POLICY sozinho
+-- estoura 42710. Mesmo padrão das migrações 0003/0004/0013.
+drop policy if exists "avisos: authenticated read" on public.avisos;
 create policy "avisos: authenticated read"
   on public.avisos for select
   to authenticated
   using (true);
 
+drop policy if exists "avisos_lidos: owner read" on public.avisos_lidos;
 create policy "avisos_lidos: owner read"
   on public.avisos_lidos for select
   using (auth.uid() = user_id);
 
+drop policy if exists "avisos_lidos: owner insert" on public.avisos_lidos;
 create policy "avisos_lidos: owner insert"
   on public.avisos_lidos for insert
   with check (auth.uid() = user_id);
