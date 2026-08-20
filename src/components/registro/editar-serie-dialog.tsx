@@ -161,7 +161,7 @@ export function EditarSerieDialog({
             maxLength={200}
             autoComplete="off"
             enterKeyHint="done"
-            placeholder="Ex.: tríceps com a corda"
+            placeholder="Ex.: estava fraco nesse dia"
             className="h-11 rounded-xl px-3.5 text-base"
           />
           {!observacao.trim() && ultimaObservacao && (
