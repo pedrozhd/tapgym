@@ -16,9 +16,11 @@ import { NextResponse, type NextRequest } from "next/server";
  * saiba ler mais que texto.
  */
 
+const SEM_CACHE = { "Cache-Control": "no-store" };
+
 /** `200 { ok: true, ...data }`. O payload de sucesso não mudou de forma. */
 export function sucesso<T extends object>(data: T = {} as T) {
-  return NextResponse.json({ ok: true, ...data });
+  return NextResponse.json({ ok: true, ...data }, { headers: SEM_CACHE });
 }
 
 /**

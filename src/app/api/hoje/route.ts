@@ -95,13 +95,23 @@ export const GET = rotaAtalho(async (request: NextRequest) => {
     ? await admin.from("series").select("*").in("exercicio_id", exercicioIdsDoDono)
     : { data: [] as Serie[] };
 
-  const { data: variacoes } = exercicioIdsDoDono.length
+  const variacoesRes = exercicioIdsDoDono.length
     ? await admin.from("exercicio_variacoes").select("*").in("exercicio_id", exercicioIdsDoDono)
-    : { data: [] as ExercicioVariacao[] };
+    : { data: [] as ExercicioVariacao[], error: null };
 
-  const { data: variacoesDia } = exercicioIdsDoDono.length
+  const variacoesDiaRes = exercicioIdsDoDono.length
     ? await admin.from("exercicio_variacao_dia").select("*").in("exercicio_id", exercicioIdsDoDono)
-    : { data: [] as ExercicioVariacaoDia[] };
+    : { data: [] as ExercicioVariacaoDia[], error: null };
+
+  if (variacoesRes.error) {
+    console.error("[atalho/hoje] exercicio_variacoes", variacoesRes.error);
+  }
+  if (variacoesDiaRes.error) {
+    console.error("[atalho/hoje] exercicio_variacao_dia", variacoesDiaRes.error);
+  }
+
+  const variacoes = variacoesRes.data;
+  const variacoesDia = variacoesDiaRes.data;
 
   const hojeStr = getDataLocalISO(new Date());
 

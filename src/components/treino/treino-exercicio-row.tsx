@@ -26,6 +26,9 @@ interface TreinoExercicioRowProps {
   onApagarDefinitivamente: () => void;
   variacoes: ExercicioVariacao[];
   variacoesDia: ExercicioVariacaoDia[];
+  /** Variação gravada para hoje; o atalho lê isto. */
+  variacaoHojeId: string | null;
+  onEscolherVariacaoHoje: (variacaoId: string | null) => Promise<void>;
   onAddVariacao: (nome: string) => Promise<void>;
   onRenameVariacao: (variacaoId: string, nome: string) => Promise<void>;
   onRemoveVariacao: (variacaoId: string) => Promise<void>;
@@ -48,6 +51,8 @@ export function TreinoExercicioRow({
   onApagarDefinitivamente,
   variacoes,
   variacoesDia,
+  variacaoHojeId,
+  onEscolherVariacaoHoje,
   onAddVariacao,
   onRenameVariacao,
   onRemoveVariacao,
@@ -57,6 +62,34 @@ export function TreinoExercicioRow({
   const [adicionandoVariacao, setAdicionandoVariacao] = useState(false);
   const [renomeando, setRenomeando] = useState<ExercicioVariacao | null>(null);
   const [erroVariacao, setErroVariacao] = useState<string | null>(null);
+  const [localId, setLocalId] = useState(variacaoHojeId);
+  const [pendente, setPendente] = useState(false);
+
+  if (!pendente && localId !== variacaoHojeId) {
+    setLocalId(variacaoHojeId);
+  }
+
+  async function escolherHoje(id: string | null) {
+    if (id === localId) {
+      if (id) {
+        const v = variacoes.find((item) => item.id === id);
+        if (v) setRenomeando(v);
+      }
+      return;
+    }
+    const anterior = variacaoHojeId;
+    setLocalId(id);
+    setPendente(true);
+    setErroVariacao(null);
+    try {
+      await onEscolherVariacaoHoje(id);
+    } catch {
+      setLocalId(anterior);
+      setErroVariacao("Não deu pra trocar a variação.");
+    } finally {
+      setPendente(false);
+    }
+  }
 
   return (
     // gap-2.5 e py-3: com gap-1.5/py-2.5 o badge de grupamento encostava na
@@ -134,14 +167,32 @@ export function TreinoExercicioRow({
       </div>
 
       <div className="flex flex-col gap-1 pl-[26px]">
+        {variacoes.length > 0 && (
+          <button
+            type="button"
+            disabled={pendente}
+            aria-pressed={localId === null}
+            onClick={() => void escolherHoje(null)}
+            className={`min-h-11 rounded-xl px-3 text-left text-[13px] font-semibold active:opacity-80 disabled:opacity-70 ${
+              localId === null ? "bg-accent text-foreground" : "text-muted-foreground"
+            }`}
+          >
+            Padrão
+          </button>
+        )}
         {variacoes.map((v) => {
           const usada = variacaoReferenciada(variacoesDia, v.id);
+          const ativa = localId === v.id;
           return (
             <div key={v.id} className="flex min-h-11 items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setRenomeando(v)}
-                className="min-w-0 flex-1 truncate text-left text-[13px] text-muted-foreground active:opacity-70"
+                disabled={pendente}
+                aria-pressed={ativa}
+                onClick={() => void escolherHoje(v.id)}
+                className={`min-h-11 min-w-0 flex-1 truncate rounded-xl px-3 text-left text-[13px] font-semibold active:opacity-80 disabled:opacity-70 ${
+                  ativa ? "bg-accent text-foreground" : "text-muted-foreground"
+                }`}
               >
                 {v.nome}
               </button>

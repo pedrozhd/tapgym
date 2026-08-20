@@ -1,4 +1,4 @@
-import { getDataLocalISO } from "@/lib/timezone";
+import { dataCivilISO, getDataLocalISO } from "@/lib/timezone";
 import type { ExercicioVariacao, ExercicioVariacaoDia, Serie } from "@/lib/types";
 
 export const SEPARADOR_NOME_VARIACAO = " · ";
@@ -30,7 +30,8 @@ export function variacaoIdDoDia(
   exercicioId: string,
   dataISO: string,
 ): string | null {
-  return dias.find((d) => d.exercicio_id === exercicioId && d.data === dataISO)?.variacao_id ?? null;
+  const dia = dataCivilISO(dataISO);
+  return dias.find((d) => d.exercicio_id === exercicioId && dataCivilISO(d.data) === dia)?.variacao_id ?? null;
 }
 
 export function nomeVariacao(

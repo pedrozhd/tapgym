@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { normalizarNomeVariacao } from "@/lib/variacao-exercicio";
 import type { ExercicioVariacao } from "@/lib/types";
@@ -11,10 +11,19 @@ interface VariacaoDoDiaControlProps {
   variacoes: ExercicioVariacao[];
   selecionadaId: string | null;
   rotuloPrefixo?: string;
-  onSelect: (variacaoId: string | null) => void;
+  onSelect: (variacaoId: string | null) => void | Promise<void>;
   onCreate: (nome: string) => Promise<void>;
 }
 
+/**
+ * Troca da variação do dia. `<select>` nativo por cima do rótulo, o mesmo
+ * padrão do grupamento: no iPhone abre o seletor do iOS, e funciona dentro
+ * do diálogo de editar série (um Dialog aninhado no iOS não recebe toque).
+ *
+ * O valor local é otimista: `selecionadaId` só atualiza depois do upsert e
+ * do refresh da store. Sem isto o select volta pra "Padrão" no meio do toque
+ * e o atalho continua vendo o nome do pai.
+ */
 export function VariacaoDoDiaControl({
   variacoes,
   selecionadaId,
@@ -22,14 +31,35 @@ export function VariacaoDoDiaControl({
   onSelect,
   onCreate,
 }: VariacaoDoDiaControlProps) {
-  const [aberto, setAberto] = useState(false);
+  const [localId, setLocalId] = useState(selecionadaId);
+  const [pendente, setPendente] = useState(false);
+  const [criandoAberto, setCriandoAberto] = useState(false);
   const [novoNome, setNovoNome] = useState("");
   const [criando, setCriando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
-  const selecionada = variacoes.find((v) => v.id === selecionadaId);
+  if (!pendente && localId !== selecionadaId) {
+    setLocalId(selecionadaId);
+  }
+
+  const selecionada = variacoes.find((v) => v.id === localId);
   const rotulo = selecionada ? selecionada.nome : "Padrão";
   const limpo = normalizarNomeVariacao(novoNome);
+
+  async function escolher(id: string | null) {
+    const anterior = selecionadaId;
+    setLocalId(id);
+    setPendente(true);
+    setErro(null);
+    try {
+      await onSelect(id);
+    } catch {
+      setLocalId(anterior);
+      setErro("Não deu pra trocar a variação.");
+    } finally {
+      setPendente(false);
+    }
+  }
 
   async function criarESelecionar() {
     if (!limpo) return;
@@ -38,7 +68,7 @@ export function VariacaoDoDiaControl({
     try {
       await onCreate(limpo);
       setNovoNome("");
-      setAberto(false);
+      setCriandoAberto(false);
     } catch {
       setErro("Não deu pra criar. Esse nome já existe?");
     } finally {
@@ -47,84 +77,69 @@ export function VariacaoDoDiaControl({
   }
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setAberto(true)}
-        className="min-h-11 rounded-xl bg-secondary px-3.5 text-left text-[13px] font-semibold text-muted-foreground active:opacity-80"
-      >
-        {rotuloPrefixo}: {rotulo}
-      </button>
+    <div className="flex flex-col gap-2">
+      <span className="relative block w-full">
+        <select
+          aria-label={`${rotuloPrefixo}: variação`}
+          value={localId ?? ""}
+          disabled={pendente || criando}
+          onChange={(e) => {
+            const v = e.target.value;
+            void escolher(v === "" ? null : v);
+          }}
+          className="absolute inset-0 z-10 cursor-pointer appearance-none opacity-0 disabled:cursor-wait"
+        >
+          <option value="">Padrão</option>
+          {variacoes.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.nome}
+            </option>
+          ))}
+        </select>
+        <span
+          aria-hidden
+          className="pointer-events-none flex min-h-11 w-full items-center justify-between rounded-xl bg-secondary px-3.5 text-[13px] font-semibold text-muted-foreground"
+        >
+          <span>
+            {rotuloPrefixo}: {rotulo}
+          </span>
+          <ChevronDown className="opacity-60" size={16} />
+        </span>
+      </span>
 
-      <Dialog
-        open={aberto}
-        onOpenChange={(next) => {
-          setAberto(next);
-          if (!next) {
-            setErro(null);
-            setNovoNome("");
-          }
-        }}
-      >
-        <DialogContent className="max-h-[min(90svh,28rem)] max-w-[340px] overflow-y-auto rounded-2xl bg-card">
-          <DialogHeader>
-            <DialogTitle>{rotuloPrefixo === "Hoje" ? "Variação de hoje" : "Variação do dia"}</DialogTitle>
-          </DialogHeader>
+      {criandoAberto ? (
+        <div className="flex flex-col gap-2">
+          <Input
+            value={novoNome}
+            onChange={(e) => setNovoNome(e.target.value)}
+            maxLength={40}
+            autoComplete="off"
+            placeholder="Ex.: Outra máquina ou com halter/barra"
+            className="h-11 rounded-xl px-3.5 text-base"
+          />
+          <Button
+            disabled={!limpo || criando}
+            onClick={() => void criarESelecionar()}
+            className="shadow-soft-elevated h-11 w-full rounded-xl"
+          >
+            {criando ? "Salvando..." : rotuloPrefixo === "Hoje" ? "Criar e usar hoje" : "Criar e usar"}
+          </Button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setCriandoAberto(true)}
+          className="min-h-11 text-left text-[13px] font-semibold text-muted-foreground active:opacity-80"
+        >
+          + Nova variação
+        </button>
+      )}
 
-          <div className="flex flex-col gap-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                onSelect(null);
-                setAberto(false);
-              }}
-              className={`min-h-11 rounded-xl px-3.5 text-left text-sm font-semibold active:opacity-80 ${
-                selecionadaId === null ? "bg-accent text-foreground" : "bg-secondary text-muted-foreground"
-              }`}
-            >
-              Padrão
-            </button>
-            {variacoes.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                onClick={() => {
-                  onSelect(v.id);
-                  setAberto(false);
-                }}
-                className={`min-h-11 rounded-xl px-3.5 text-left text-sm font-semibold active:opacity-80 ${
-                  selecionadaId === v.id ? "bg-accent text-foreground" : "bg-secondary text-muted-foreground"
-                }`}
-              >
-                {v.nome}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-col gap-2 border-t border-border pt-3">
-            <Input
-              value={novoNome}
-              onChange={(e) => setNovoNome(e.target.value)}
-              maxLength={40}
-              autoComplete="off"
-              placeholder="Ex.: Outra máquina ou com halter/barra"
-              className="h-11 rounded-xl px-3.5 text-base"
-            />
-            <Button
-              disabled={!limpo || criando}
-              onClick={() => void criarESelecionar()}
-              className="shadow-soft-elevated h-11 w-full rounded-xl"
-            >
-              {criando ? "Salvando..." : rotuloPrefixo === "Hoje" ? "Criar e usar hoje" : "Criar e usar"}
-            </Button>
-            {erro && (
-              <p role="alert" className="text-[13px] text-destructive">
-                {erro}
-              </p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+      {erro && (
+        <p role="alert" className="text-[13px] text-destructive">
+          {erro}
+        </p>
+      )}
+    </div>
   );
 }

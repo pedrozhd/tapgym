@@ -13,7 +13,6 @@ import { ExercicioTabs } from "@/components/registro/exercicio-tabs";
 import { QualidadeIcon } from "@/components/registro/qualidade-icon";
 import { QualidadePicker } from "@/components/registro/qualidade-picker";
 import { RepsCard } from "@/components/registro/reps-card";
-import { VariacaoDoDiaControl } from "@/components/registro/variacao-do-dia-control";
 import { TypographyH1, TypographyMuted } from "@/components/ui/typography";
 import { formatCarga, getTreinoDeHoje, shouldSugerirProgressao } from "@/lib/dashboard";
 import { contextoObservacaoDoDia } from "@/lib/observacao-exercicio";
@@ -194,28 +193,6 @@ export default function RegistroPage() {
 
           <div className="flex flex-col gap-2">
             <TypographyH1>{curEx.exercicio.nome}</TypographyH1>
-            <VariacaoDoDiaControl
-              variacoes={variacoesDoExercicio(exercicioVariacoes, curEx.exercicio_id)}
-              selecionadaId={variacaoHojeId}
-              onSelect={(id) => {
-                void setVariacaoDoDia(curEx.exercicio_id, hojeStr, id).then(() => {
-                  const proxima = ultimaSerieDaClassificacao(
-                    series,
-                    exercicioVariacoesDia,
-                    curEx.exercicio_id,
-                    id,
-                  );
-                  setCarga(proxima ? proxima.carga : 0);
-                });
-              }}
-              onCreate={async (nome) => {
-                const id = await addVariacaoExercicio(curEx.exercicio_id, nome);
-                if (id) {
-                  await setVariacaoDoDia(curEx.exercicio_id, hojeStr, id);
-                  setCarga(0);
-                }
-              }}
-            />
             <TypographyMuted className="flex items-center gap-1.5">
               {ultima ? (
                 <>

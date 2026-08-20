@@ -19,7 +19,7 @@ import { BlurCommitInput } from "@/components/ui/blur-commit-input";
 import { SoftCard } from "@/components/ui/soft-card";
 import { cn } from "@/lib/utils";
 import type { Exercicio, ExercicioVariacao, ExercicioVariacaoDia, GrupoMuscular, TreinoExercicioComExercicio } from "@/lib/types";
-import { variacoesDoExercicio } from "@/lib/variacao-exercicio";
+import { variacaoIdDoDia, variacoesDoExercicio } from "@/lib/variacao-exercicio";
 
 interface TreinoDiaCardProps {
   nome: string;
@@ -40,6 +40,8 @@ interface TreinoDiaCardProps {
   onAddVariacao: (exercicioId: string, nome: string) => Promise<void>;
   onRenameVariacao: (variacaoId: string, nome: string) => Promise<void>;
   onRemoveVariacao: (variacaoId: string) => Promise<void>;
+  onEscolherVariacaoHoje: (exercicioId: string, variacaoId: string | null) => Promise<void>;
+  hojeISO: string;
 }
 
 export function TreinoDiaCard({
@@ -61,6 +63,8 @@ export function TreinoDiaCard({
   onAddVariacao,
   onRenameVariacao,
   onRemoveVariacao,
+  onEscolherVariacaoHoje,
+  hojeISO,
 }: TreinoDiaCardProps) {
   const [aberto, setAberto] = useState(exercicios.length === 0);
   const [editandoNome, setEditandoNome] = useState(false);
@@ -179,6 +183,8 @@ export function TreinoDiaCard({
                     onGrupoMuscularChange={(grupo) => onGrupoMuscularChange(te.exercicio_id, grupo)}
                     variacoes={variacoesDoExercicio(variacoes, te.exercicio_id)}
                     variacoesDia={variacoesDia}
+                    variacaoHojeId={variacaoIdDoDia(variacoesDia, te.exercicio_id, hojeISO)}
+                    onEscolherVariacaoHoje={(id) => onEscolherVariacaoHoje(te.exercicio_id, id)}
                     onAddVariacao={(nome) => onAddVariacao(te.exercicio_id, nome)}
                     onRenameVariacao={onRenameVariacao}
                     onRemoveVariacao={onRemoveVariacao}

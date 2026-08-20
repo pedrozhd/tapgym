@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { TypographyMuted } from "@/components/ui/typography";
 import { exportarTreinosPdf } from "@/lib/export-treino-pdf";
 import { useAppStore } from "@/lib/store";
+import { getDataLocalISO } from "@/lib/timezone";
 import type { Exercicio, TreinoExercicio } from "@/lib/types";
 
 export default function MeuTreinoPage() {
@@ -35,12 +36,14 @@ export default function MeuTreinoPage() {
     addVariacaoExercicio,
     renameVariacaoExercicio,
     removeVariacaoExercicio,
+    setVariacaoDoDia,
   } = useAppStore();
 
   const [exportando, setExportando] = useState(false);
   const [erroExport, setErroExport] = useState<string | null>(null);
 
   const treinosOrdenados = [...treinos].sort((a, b) => a.ordem - b.ordem);
+  const hojeISO = getDataLocalISO(new Date());
 
   function handleExportarPdf() {
     setErroExport(null);
@@ -105,10 +108,15 @@ export default function MeuTreinoPage() {
                 onApagarExercicioDefinitivamente={excluirExercicioDefinitivamente}
                 onGrupoMuscularChange={updateGrupoMuscular}
                 onAddVariacao={async (exercicioId, nome) => {
-                  await addVariacaoExercicio(exercicioId, nome);
+                  const id = await addVariacaoExercicio(exercicioId, nome);
+                  if (id) await setVariacaoDoDia(exercicioId, hojeISO, id);
                 }}
                 onRenameVariacao={renameVariacaoExercicio}
                 onRemoveVariacao={removeVariacaoExercicio}
+                onEscolherVariacaoHoje={(exercicioId, variacaoId) =>
+                  setVariacaoDoDia(exercicioId, hojeISO, variacaoId)
+                }
+                hojeISO={hojeISO}
               />
             );
           })}

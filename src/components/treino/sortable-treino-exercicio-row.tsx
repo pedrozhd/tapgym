@@ -22,6 +22,8 @@ interface SortableTreinoExercicioRowProps {
   onApagarDefinitivamente: () => void;
   variacoes: ExercicioVariacao[];
   variacoesDia: ExercicioVariacaoDia[];
+  variacaoHojeId: string | null;
+  onEscolherVariacaoHoje: (variacaoId: string | null) => Promise<void>;
   onAddVariacao: (nome: string) => Promise<void>;
   onRenameVariacao: (variacaoId: string, nome: string) => Promise<void>;
   onRemoveVariacao: (variacaoId: string) => Promise<void>;

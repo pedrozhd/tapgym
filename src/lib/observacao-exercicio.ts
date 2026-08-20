@@ -1,4 +1,4 @@
-import { getDataLocalISO } from "@/lib/timezone";
+import { dataCivilISO, getDataLocalISO } from "@/lib/timezone";
 import type { ExercicioObservacao, Serie } from "@/lib/types";
 
 export function observacaoDoDia(
@@ -6,7 +6,8 @@ export function observacaoDoDia(
   exercicioId: string,
   dataISO: string,
 ): ExercicioObservacao | null {
-  return observacoes.find((o) => o.exercicio_id === exercicioId && o.data === dataISO) ?? null;
+  const dia = dataCivilISO(dataISO);
+  return observacoes.find((o) => o.exercicio_id === exercicioId && dataCivilISO(o.data) === dia) ?? null;
 }
 
 /** Nota mais recente em um dia anterior a `dataISO` (YYYY-MM-DD). */
@@ -16,8 +17,8 @@ export function ultimaObservacaoAntes(
   dataISO: string,
 ): ExercicioObservacao | null {
   const anteriores = observacoes
-    .filter((o) => o.exercicio_id === exercicioId && o.data < dataISO)
-    .sort((a, b) => b.data.localeCompare(a.data));
+    .filter((o) => o.exercicio_id === exercicioId && dataCivilISO(o.data) < dataCivilISO(dataISO))
+    .sort((a, b) => dataCivilISO(b.data).localeCompare(dataCivilISO(a.data)));
   return anteriores[0] ?? null;
 }
 
