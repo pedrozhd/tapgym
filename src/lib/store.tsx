@@ -2,18 +2,30 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Aviso, Exercicio, GrupoMuscular, Qualidade, Serie, Treino, TreinoExercicio } from "@/lib/types";
+import type {
+  Aviso,
+  Exercicio,
+  ExercicioObservacao,
+  ExercicioVariacao,
+  ExercicioVariacaoDia,
+  GrupoMuscular,
+  Qualidade,
+  Serie,
+  Treino,
+  TreinoExercicio,
+} from "@/lib/types";
+import { normalizarNomeVariacao, variacaoReferenciada } from "@/lib/variacao-exercicio";
 
 /**
- * Client-side data layer backed by Supabase. Holds the same four tables in
- * memory (refetched after every mutation — this app's data is small enough
+ * Client-side data layer backed by Supabase. Holds the app tables in
+ * memory (refetched after every mutation, this app's data is small enough
  * that this is simpler and safer than hand-rolled optimistic patching) and
  * exposes the same shape `mock-store.tsx` used to, so Dashboard/Registro/
  * Meu Treino didn't need to change.
  *
  * Every write uses `.throwOnError()` so a failed insert/update/delete rejects
  * the returned promise instead of silently succeeding from the caller's point
- * of view — callers that show a "saved" confirmation must await and catch.
+ * of view, callers that show a "saved" confirmation must await and catch.
  */
 
 interface AppDb {
@@ -21,6 +33,9 @@ interface AppDb {
   exercicios: Exercicio[];
   treinoExercicios: TreinoExercicio[];
   series: Serie[];
+  exercicioObservacoes: ExercicioObservacao[];
+  exercicioVariacoes: ExercicioVariacao[];
+  exercicioVariacoesDia: ExercicioVariacaoDia[];
   avisos: Aviso[];
   /** IDs de avisos já lidos pelo usuário atual. */
   avisosLidosIds: string[];
@@ -31,6 +46,9 @@ const EMPTY_DB: AppDb = {
   exercicios: [],
   treinoExercicios: [],
   series: [],
+  exercicioObservacoes: [],
+  exercicioVariacoes: [],
+  exercicioVariacoesDia: [],
   avisos: [],
   avisosLidosIds: [],
 };
@@ -60,9 +78,16 @@ interface AppStoreValue extends AppDb {
   reordenarExerciciosDoTreino: (treinoExercicioIdsEmOrdem: string[]) => Promise<void>;
   setTreinoDoDia: (diaSemana: number, treinoId: string | null) => Promise<void>;
   updateNome: (nome: string) => Promise<void>;
+  /** Grava a nota do exercício naquela data civil (YYYY-MM-DD). Texto vazio apaga a linha. */
+  salvarObservacaoExercicio: (exercicioId: string, data: string, texto: string) => Promise<void>;
+  addVariacaoExercicio: (exercicioId: string, nome: string) => Promise<string | null>;
+  renameVariacaoExercicio: (variacaoId: string, nome: string) => Promise<void>;
+  removeVariacaoExercicio: (variacaoId: string) => Promise<void>;
+  /** `variacaoId` null volta o dia para Padrão (apaga a row). */
+  setVariacaoDoDia: (exercicioId: string, data: string, variacaoId: string | null) => Promise<void>;
   /** Idempotente: reabrir um aviso já lido não gera segunda linha nem segunda viagem de rede. */
   marcarAvisoLido: (avisoId: string) => Promise<void>;
-  /** Rebusca as quatro tabelas do Supabase — usado pra atualizar a tela sem dar F5. */
+  /** Rebusca as tabelas do Supabase, usado pra atualizar a tela sem dar F5. */
   refresh: () => Promise<void>;
 }
 
@@ -92,12 +117,25 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   const refresh = useCallback(async () => {
-    const [treinosRes, exerciciosRes, treinoExerciciosRes, seriesRes, avisosRes, avisosLidosRes, profileRes] =
-      await Promise.all([
+    const [
+      treinosRes,
+      exerciciosRes,
+      treinoExerciciosRes,
+      seriesRes,
+      observacoesRes,
+      variacoesRes,
+      variacoesDiaRes,
+      avisosRes,
+      avisosLidosRes,
+      profileRes,
+    ] = await Promise.all([
         supabase.from("treinos").select("*").order("ordem"),
         supabase.from("exercicios").select("*"),
         supabase.from("treino_exercicios").select("*").order("ordem"),
         supabase.from("series").select("*").order("data"),
+        supabase.from("exercicio_observacoes").select("*").order("data", { ascending: false }),
+        supabase.from("exercicio_variacoes").select("*").order("nome"),
+        supabase.from("exercicio_variacao_dia").select("*"),
         supabase.from("avisos").select("*").order("publicado_em", { ascending: false }),
         supabase.from("avisos_lidos").select("aviso_id"),
         supabase
@@ -110,6 +148,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       exercicios: exerciciosRes.data ?? [],
       treinoExercicios: treinoExerciciosRes.data ?? [],
       series: seriesRes.data ?? [],
+      exercicioObservacoes: observacoesRes.data ?? [],
+      exercicioVariacoes: variacoesRes.data ?? [],
+      exercicioVariacoesDia: variacoesDiaRes.data ?? [],
       avisos: avisosRes.data ?? [],
       avisosLidosIds: (avisosLidosRes.data ?? []).map((l) => l.aviso_id),
     });
@@ -122,7 +163,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Fetching from Supabase is inherently async, so there's no render-time
-    // alternative here — this just re-fetches whenever the signed-in user changes.
+    // alternative here, this just re-fetches whenever the signed-in user changes.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (userId) refresh();
   }, [userId, refresh]);
@@ -300,6 +341,72 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       async updateNome(novoNome) {
         if (!userId) return;
         await supabase.from("profiles").update({ nome: novoNome }).eq("id", userId).throwOnError();
+        await refresh();
+      },
+
+      async salvarObservacaoExercicio(exercicioId, data, texto) {
+        const limpo = texto.trim();
+        if (limpo === "") {
+          await supabase
+            .from("exercicio_observacoes")
+            .delete()
+            .eq("exercicio_id", exercicioId)
+            .eq("data", data)
+            .throwOnError();
+        } else {
+          await supabase
+            .from("exercicio_observacoes")
+            .upsert(
+              { exercicio_id: exercicioId, data, texto: limpo.slice(0, 200) },
+              { onConflict: "exercicio_id,data" },
+            )
+            .throwOnError();
+        }
+        await refresh();
+      },
+
+      async addVariacaoExercicio(exercicioId, nome) {
+        const limpo = normalizarNomeVariacao(nome);
+        if (limpo === "") return null;
+        const { data, error } = await supabase
+          .from("exercicio_variacoes")
+          .insert({ exercicio_id: exercicioId, nome: limpo })
+          .select("id")
+          .single();
+        if (error) throw error;
+        await refresh();
+        return data?.id ?? null;
+      },
+
+      async renameVariacaoExercicio(variacaoId, nome) {
+        const limpo = normalizarNomeVariacao(nome);
+        if (limpo === "") return;
+        await supabase.from("exercicio_variacoes").update({ nome: limpo }).eq("id", variacaoId).throwOnError();
+        await refresh();
+      },
+
+      async removeVariacaoExercicio(variacaoId) {
+        if (variacaoReferenciada(db.exercicioVariacoesDia, variacaoId)) {
+          throw new Error("Essa variação já foi usada num treino. Só dá para renomear.");
+        }
+        await supabase.from("exercicio_variacoes").delete().eq("id", variacaoId).throwOnError();
+        await refresh();
+      },
+
+      async setVariacaoDoDia(exercicioId, data, variacaoId) {
+        if (variacaoId === null) {
+          await supabase
+            .from("exercicio_variacao_dia")
+            .delete()
+            .eq("exercicio_id", exercicioId)
+            .eq("data", data)
+            .throwOnError();
+        } else {
+          await supabase
+            .from("exercicio_variacao_dia")
+            .upsert({ exercicio_id: exercicioId, data, variacao_id: variacaoId }, { onConflict: "exercicio_id,data" })
+            .throwOnError();
+        }
         await refresh();
       },
 

@@ -13,14 +13,36 @@ import { ExercicioTabs } from "@/components/registro/exercicio-tabs";
 import { QualidadeIcon } from "@/components/registro/qualidade-icon";
 import { QualidadePicker } from "@/components/registro/qualidade-picker";
 import { RepsCard } from "@/components/registro/reps-card";
+import { VariacaoDoDiaControl } from "@/components/registro/variacao-do-dia-control";
 import { TypographyH1, TypographyMuted } from "@/components/ui/typography";
-import { formatCarga, getTreinoDeHoje, getUltimaSerie, shouldSugerirProgressao } from "@/lib/dashboard";
+import { formatCarga, getTreinoDeHoje, shouldSugerirProgressao } from "@/lib/dashboard";
+import { contextoObservacaoDoDia } from "@/lib/observacao-exercicio";
 import { useAppStore } from "@/lib/store";
 import { getDataLocalISO } from "@/lib/timezone";
 import type { Qualidade, Serie } from "@/lib/types";
+import {
+  ultimaSerieDaClassificacao,
+  variacaoIdDoDia,
+  variacoesDoExercicio,
+} from "@/lib/variacao-exercicio";
 
 export default function RegistroPage() {
-  const { treinos, treinoExercicios, exercicios, series, addSerie, updateSerie, removeSerie, loading } = useAppStore();
+  const {
+    treinos,
+    treinoExercicios,
+    exercicios,
+    series,
+    exercicioObservacoes,
+    exercicioVariacoes,
+    exercicioVariacoesDia,
+    addSerie,
+    updateSerie,
+    removeSerie,
+    salvarObservacaoExercicio,
+    addVariacaoExercicio,
+    setVariacaoDoDia,
+    loading,
+  } = useAppStore();
   const [serieEditando, setSerieEditando] = useState<Serie | null>(null);
 
   const treinoDeHoje = getTreinoDeHoje(treinos);
@@ -35,7 +57,9 @@ export default function RegistroPage() {
   const curEx = exerciciosDoDia[Math.min(activeIndex, Math.max(exerciciosDoDia.length - 1, 0))];
 
   function ultimaCargaDe(exercicioId: string): number {
-    const ultima = getUltimaSerie(series.filter((s) => s.exercicio_id === exercicioId));
+    const hoje = getDataLocalISO(new Date());
+    const varId = variacaoIdDoDia(exercicioVariacoesDia, exercicioId, hoje);
+    const ultima = ultimaSerieDaClassificacao(series, exercicioVariacoesDia, exercicioId, varId);
     return ultima ? ultima.carga : 0;
   }
 
@@ -45,7 +69,7 @@ export default function RegistroPage() {
   const [toast, setToast] = useState<{ msg: string; key: number } | null>(null);
   const [exercicioSincronizado, setExercicioSincronizado] = useState<string | undefined>(undefined);
 
-  // Reseta os campos sempre que o exercício ativo muda — inclusive na
+  // Reseta os campos sempre que o exercício ativo muda, inclusive na
   // primeira vez que ele deixa de ser `undefined`, quando os dados terminam
   // de carregar. Sem isso, a carga inicial (calculada uma única vez, enquanto
   // a store ainda estava carregando) ficava travada em 0 depois de um
@@ -129,15 +153,22 @@ export default function RegistroPage() {
   }
 
   const seriesDoExercicio = series.filter((s) => s.exercicio_id === curEx.exercicio_id);
-  const ultima = getUltimaSerie(seriesDoExercicio);
-  // Fuso fixo do app, não o do navegador — mantém "hoje" consistente com o
+  // Fuso fixo do app, não o do navegador, mantém "hoje" consistente com o
   // que a API (/api/hoje, rodando na Vercel em UTC) calcula.
   const hojeStr = getDataLocalISO(new Date());
+  const variacaoHojeId = variacaoIdDoDia(exercicioVariacoesDia, curEx.exercicio_id, hojeStr);
+  const ultima = ultimaSerieDaClassificacao(
+    series,
+    exercicioVariacoesDia,
+    curEx.exercicio_id,
+    variacaoHojeId,
+  );
   const setsDeHoje = seriesDoExercicio
     .filter((s) => getDataLocalISO(new Date(s.data)) === hojeStr)
     .sort((a, b) => a.data.localeCompare(b.data));
   const numeroProximaSerie = setsDeHoje.length + 1;
   const sugereProgressao = shouldSugerirProgressao(reps, curEx.rep_max, qualidade);
+  const obsEdicao = contextoObservacaoDoDia(exercicioObservacoes, serieEditando);
 
   return (
     <>
@@ -161,9 +192,31 @@ export default function RegistroPage() {
             </Badge>
           </div>
 
-          <div>
+          <div className="flex flex-col gap-2">
             <TypographyH1>{curEx.exercicio.nome}</TypographyH1>
-            <TypographyMuted className="mt-1.5 flex items-center gap-1.5">
+            <VariacaoDoDiaControl
+              variacoes={variacoesDoExercicio(exercicioVariacoes, curEx.exercicio_id)}
+              selecionadaId={variacaoHojeId}
+              onSelect={(id) => {
+                void setVariacaoDoDia(curEx.exercicio_id, hojeStr, id).then(() => {
+                  const proxima = ultimaSerieDaClassificacao(
+                    series,
+                    exercicioVariacoesDia,
+                    curEx.exercicio_id,
+                    id,
+                  );
+                  setCarga(proxima ? proxima.carga : 0);
+                });
+              }}
+              onCreate={async (nome) => {
+                const id = await addVariacaoExercicio(curEx.exercicio_id, nome);
+                if (id) {
+                  await setVariacaoDoDia(curEx.exercicio_id, hojeStr, id);
+                  setCarga(0);
+                }
+              }}
+            />
+            <TypographyMuted className="flex items-center gap-1.5">
               {ultima ? (
                 <>
                   Última: {formatCarga(ultima.carga)} kg × {ultima.reps}
@@ -199,7 +252,7 @@ export default function RegistroPage() {
             <span className="text-xs font-semibold text-muted-foreground">Séries de hoje:</span>
             {/* A pílula inteira é o alvo de toque e abre a edição (que também
                 apaga). Antes havia dois botões de ícone de 11 e 12px colados
-                um no outro dentro dela — o de apagar era destrutivo e ficava a
+                um no outro dentro dela, o de apagar era destrutivo e ficava a
                 4px do de editar. */}
             <div className="flex flex-wrap items-center gap-2">
               {setsDeHoje.map((s, i) => (
@@ -235,7 +288,7 @@ export default function RegistroPage() {
             {salvando ? "Salvando..." : "Salvar série"}
           </Button>
           {/* Botão desabilitado sem motivo visível fazia o usuário adivinhar o
-              que faltava — quase sempre a qualidade, que fica acima da dobra. */}
+              que faltava, quase sempre a qualidade, que fica acima da dobra. */}
           {camposFaltando && !salvando && (
             <p className="mt-2 text-center text-[13px] text-muted-foreground">
               Falta informar {faltando.join(" e ")}.
@@ -248,8 +301,24 @@ export default function RegistroPage() {
 
       <EditarSerieDialog
         serie={serieEditando}
+        observacaoDia={obsEdicao.texto}
+        ultimaObservacao={obsEdicao.ultima}
+        variacoes={variacoesDoExercicio(exercicioVariacoes, serieEditando?.exercicio_id ?? curEx.exercicio_id)}
+        variacaoDiaId={
+          serieEditando
+            ? variacaoIdDoDia(exercicioVariacoesDia, serieEditando.exercicio_id, obsEdicao.dataISO)
+            : null
+        }
+        onCreateVariacao={(nome) =>
+          addVariacaoExercicio(serieEditando?.exercicio_id ?? curEx.exercicio_id, nome)
+        }
         onOpenChange={(open) => !open && setSerieEditando(null)}
-        onSave={(serieId, carga, reps, qualidade) => updateSerie(serieId, carga, reps, qualidade)}
+        onSave={async (serieId, carga, reps, qualidade, observacao, variacaoId) => {
+          if (!serieEditando) return;
+          await updateSerie(serieId, carga, reps, qualidade);
+          await salvarObservacaoExercicio(serieEditando.exercicio_id, obsEdicao.dataISO, observacao);
+          await setVariacaoDoDia(serieEditando.exercicio_id, obsEdicao.dataISO, variacaoId);
+        }}
         onDelete={removeSerie}
       />
     </>

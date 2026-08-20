@@ -3,7 +3,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TreinoExercicioRow } from "@/components/treino/treino-exercicio-row";
-import type { GrupoMuscular } from "@/lib/types";
+import type { ExercicioVariacao, ExercicioVariacaoDia, GrupoMuscular } from "@/lib/types";
 
 interface SortableTreinoExercicioRowProps {
   id: string;
@@ -20,6 +20,11 @@ interface SortableTreinoExercicioRowProps {
   onRepMaxChange: (value: number) => void;
   onDesvincular: () => void;
   onApagarDefinitivamente: () => void;
+  variacoes: ExercicioVariacao[];
+  variacoesDia: ExercicioVariacaoDia[];
+  onAddVariacao: (nome: string) => Promise<void>;
+  onRenameVariacao: (variacaoId: string, nome: string) => Promise<void>;
+  onRemoveVariacao: (variacaoId: string) => Promise<void>;
 }
 
 export function SortableTreinoExercicioRow({ id, ...rowProps }: SortableTreinoExercicioRowProps) {

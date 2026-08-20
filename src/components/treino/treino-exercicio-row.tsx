@@ -5,7 +5,9 @@ import { GripVertical, Link2, X } from "lucide-react";
 import { BlurCommitInput } from "@/components/ui/blur-commit-input";
 import { GrupoMuscularSelect } from "@/components/treino/grupo-muscular-select";
 import { RemoverExercicioDialog } from "@/components/treino/remover-exercicio-dialog";
-import type { GrupoMuscular } from "@/lib/types";
+import { VariacaoNomeDialog } from "@/components/treino/variacao-nome-dialog";
+import type { ExercicioVariacao, ExercicioVariacaoDia, GrupoMuscular } from "@/lib/types";
+import { variacaoReferenciada } from "@/lib/variacao-exercicio";
 
 interface TreinoExercicioRowProps {
   nome: string;
@@ -22,6 +24,11 @@ interface TreinoExercicioRowProps {
   onRepMaxChange: (value: number) => void;
   onDesvincular: () => void;
   onApagarDefinitivamente: () => void;
+  variacoes: ExercicioVariacao[];
+  variacoesDia: ExercicioVariacaoDia[];
+  onAddVariacao: (nome: string) => Promise<void>;
+  onRenameVariacao: (variacaoId: string, nome: string) => Promise<void>;
+  onRemoveVariacao: (variacaoId: string) => Promise<void>;
   dragHandleProps?: HTMLAttributes<HTMLButtonElement>;
 }
 
@@ -39,9 +46,17 @@ export function TreinoExercicioRow({
   onRepMaxChange,
   onDesvincular,
   onApagarDefinitivamente,
+  variacoes,
+  variacoesDia,
+  onAddVariacao,
+  onRenameVariacao,
+  onRemoveVariacao,
   dragHandleProps,
 }: TreinoExercicioRowProps) {
   const [confirmandoRemocao, setConfirmandoRemocao] = useState(false);
+  const [adicionandoVariacao, setAdicionandoVariacao] = useState(false);
+  const [renomeando, setRenomeando] = useState<ExercicioVariacao | null>(null);
+  const [erroVariacao, setErroVariacao] = useState<string | null>(null);
 
   return (
     // gap-2.5 e py-3: com gap-1.5/py-2.5 o badge de grupamento encostava na
@@ -117,6 +132,72 @@ export function TreinoExercicioRow({
       <div className="pl-[26px]">
         <GrupoMuscularSelect value={grupoMuscular} onChange={onGrupoMuscularChange} />
       </div>
+
+      <div className="flex flex-col gap-1 pl-[26px]">
+        {variacoes.map((v) => {
+          const usada = variacaoReferenciada(variacoesDia, v.id);
+          return (
+            <div key={v.id} className="flex min-h-11 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setRenomeando(v)}
+                className="min-w-0 flex-1 truncate text-left text-[13px] text-muted-foreground active:opacity-70"
+              >
+                {v.nome}
+              </button>
+              {!usada && (
+                <button
+                  type="button"
+                  aria-label={`Apagar variação ${v.nome}`}
+                  onClick={() => {
+                    void onRemoveVariacao(v.id).catch(() => {
+                      setErroVariacao("Não deu pra apagar a variação.");
+                    });
+                  }}
+                  className="shrink-0 px-1 text-muted-foreground active:opacity-60"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setAdicionandoVariacao(true)}
+          className="min-h-11 text-left text-[13px] font-semibold text-muted-foreground active:opacity-80"
+        >
+          + Adicionar variação
+        </button>
+        {erroVariacao && (
+          <p role="alert" className="text-[12px] text-destructive">
+            {erroVariacao}
+          </p>
+        )}
+      </div>
+
+      <VariacaoNomeDialog
+        open={adicionandoVariacao}
+        title="Nova variação"
+        onOpenChange={setAdicionandoVariacao}
+        onConfirm={(nome) => {
+          void onAddVariacao(nome).catch(() => {
+            setErroVariacao("Não deu pra criar. Esse nome já existe?");
+          });
+        }}
+      />
+      <VariacaoNomeDialog
+        open={renomeando !== null}
+        title="Renomear variação"
+        valorInicial={renomeando?.nome ?? ""}
+        onOpenChange={(open) => !open && setRenomeando(null)}
+        onConfirm={(nome) => {
+          if (!renomeando) return;
+          void onRenameVariacao(renomeando.id, nome).catch(() => {
+            setErroVariacao("Não deu pra renomear. Esse nome já existe?");
+          });
+        }}
+      />
 
       <RemoverExercicioDialog
         open={confirmandoRemocao}

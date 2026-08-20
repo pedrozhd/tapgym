@@ -18,12 +18,15 @@ import { SortableTreinoExercicioRow } from "@/components/treino/sortable-treino-
 import { BlurCommitInput } from "@/components/ui/blur-commit-input";
 import { SoftCard } from "@/components/ui/soft-card";
 import { cn } from "@/lib/utils";
-import type { Exercicio, GrupoMuscular, TreinoExercicioComExercicio } from "@/lib/types";
+import type { Exercicio, ExercicioVariacao, ExercicioVariacaoDia, GrupoMuscular, TreinoExercicioComExercicio } from "@/lib/types";
+import { variacoesDoExercicio } from "@/lib/variacao-exercicio";
 
 interface TreinoDiaCardProps {
   nome: string;
   exercicios: TreinoExercicioComExercicio[];
-  exerciciosDisponiveis: Exercicio[];
+  todosExercicios: Exercicio[];
+  variacoes: ExercicioVariacao[];
+  variacoesDia: ExercicioVariacaoDia[];
   onRename: (nome: string) => void;
   onRemoveDia: () => void;
   onAddExercicio: () => void;
@@ -34,12 +37,17 @@ interface TreinoDiaCardProps {
   onDesvincularExercicio: (treinoExercicioId: string) => void;
   onApagarExercicioDefinitivamente: (exercicioId: string) => void;
   onGrupoMuscularChange: (exercicioId: string, grupo: GrupoMuscular) => void;
+  onAddVariacao: (exercicioId: string, nome: string) => Promise<void>;
+  onRenameVariacao: (variacaoId: string, nome: string) => Promise<void>;
+  onRemoveVariacao: (variacaoId: string) => Promise<void>;
 }
 
 export function TreinoDiaCard({
   nome,
   exercicios,
-  exerciciosDisponiveis,
+  todosExercicios,
+  variacoes,
+  variacoesDia,
   onRename,
   onRemoveDia,
   onAddExercicio,
@@ -50,6 +58,9 @@ export function TreinoDiaCard({
   onDesvincularExercicio,
   onApagarExercicioDefinitivamente,
   onGrupoMuscularChange,
+  onAddVariacao,
+  onRenameVariacao,
+  onRemoveVariacao,
 }: TreinoDiaCardProps) {
   const [aberto, setAberto] = useState(exercicios.length === 0);
   const [editandoNome, setEditandoNome] = useState(false);
@@ -166,6 +177,11 @@ export function TreinoDiaCard({
                     onApagarDefinitivamente={() => onApagarExercicioDefinitivamente(te.exercicio_id)}
                     grupoMuscular={te.exercicio.grupo_muscular}
                     onGrupoMuscularChange={(grupo) => onGrupoMuscularChange(te.exercicio_id, grupo)}
+                    variacoes={variacoesDoExercicio(variacoes, te.exercicio_id)}
+                    variacoesDia={variacoesDia}
+                    onAddVariacao={(nome) => onAddVariacao(te.exercicio_id, nome)}
+                    onRenameVariacao={onRenameVariacao}
+                    onRemoveVariacao={onRemoveVariacao}
                   />
                 ))}
               </div>
@@ -185,9 +201,12 @@ export function TreinoDiaCard({
       <AdicionarExercicioDialog
         open={adicionandoExercicio}
         onOpenChange={setAdicionandoExercicio}
-        exerciciosDisponiveis={exerciciosDisponiveis}
+        exercicios={todosExercicios}
+        idsNesteTreino={new Set(exercicios.map((te) => te.exercicio_id))}
+        variacoes={variacoes}
         onCriarNovo={onAddExercicio}
         onVincularExistente={onVincularExercicioExistente}
+        onAddVariacao={onAddVariacao}
       />
     </SoftCard>
   );

@@ -10,9 +10,17 @@ import { QualidadeIcon } from "@/components/registro/qualidade-icon";
 import { SoftCard } from "@/components/ui/soft-card";
 import { TypographyEyebrow, TypographyMuted, TypographySectionTitle } from "@/components/ui/typography";
 import { formatCarga } from "@/lib/dashboard";
+import { contextoObservacaoDoDia, observacaoDoDia } from "@/lib/observacao-exercicio";
 import { useAppStore } from "@/lib/store";
-import { APP_TIMEZONE } from "@/lib/timezone";
+import { APP_TIMEZONE, getDataLocalISO } from "@/lib/timezone";
 import type { Serie } from "@/lib/types";
+import {
+  classificacoesNoHistorico,
+  nomeVariacao,
+  seriesDaClassificacao,
+  variacaoIdDoDia,
+  variacoesDoExercicio,
+} from "@/lib/variacao-exercicio";
 
 function formatDataSerie(iso: string): string {
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", timeZone: APP_TIMEZONE })
@@ -23,14 +31,34 @@ function formatDataSerie(iso: string): string {
 export default function ExercicioHistoricoPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
-  const { exercicios, series, loading, updateSerie, removeSerie } = useAppStore();
+  const {
+    exercicios,
+    series,
+    exercicioObservacoes,
+    exercicioVariacoes,
+    exercicioVariacoesDia,
+    loading,
+    updateSerie,
+    removeSerie,
+    salvarObservacaoExercicio,
+    addVariacaoExercicio,
+    setVariacaoDoDia,
+  } = useAppStore();
   const [serieEditando, setSerieEditando] = useState<Serie | null>(null);
+  const [filtroVariacao, setFiltroVariacao] = useState<"todas" | "padrao" | string>("todas");
+  const obsEdicao = contextoObservacaoDoDia(exercicioObservacoes, serieEditando);
 
   const exercicio = exercicios.find((e) => e.id === params.id);
-  const seriesAntigaPrimeiro = series
-    .filter((s) => s.exercicio_id === params.id)
-    .sort((a, b) => a.data.localeCompare(b.data));
+  const seriesFiltradas = seriesDaClassificacao(
+    series,
+    exercicioVariacoesDia,
+    params.id,
+    filtroVariacao,
+  );
+  const seriesAntigaPrimeiro = [...seriesFiltradas].sort((a, b) => a.data.localeCompare(b.data));
   const seriesRecentePrimeiro = [...seriesAntigaPrimeiro].reverse();
+  const classificacoes = classificacoesNoHistorico(series, exercicioVariacoesDia, params.id);
+  const mostrarFiltro = classificacoes.length >= 2;
 
   if (loading) {
     return (
@@ -134,27 +162,90 @@ export default function ExercicioHistoricoPage() {
 
             <section className="flex flex-col gap-2.5">
               <TypographySectionTitle>Todas as séries ({seriesRecentePrimeiro.length})</TypographySectionTitle>
+              {mostrarFiltro && (
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setFiltroVariacao("todas")}
+                    className={`min-h-11 rounded-full px-3.5 text-[13px] font-semibold ${
+                      filtroVariacao === "todas" ? "bg-accent text-foreground" : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    Todas
+                  </button>
+                  {classificacoes.includes(null) && (
+                    <button
+                      type="button"
+                      onClick={() => setFiltroVariacao("padrao")}
+                      className={`min-h-11 rounded-full px-3.5 text-[13px] font-semibold ${
+                        filtroVariacao === "padrao" ? "bg-accent text-foreground" : "bg-secondary text-muted-foreground"
+                      }`}
+                    >
+                      Padrão
+                    </button>
+                  )}
+                  {classificacoes
+                    .filter((id): id is string => id !== null)
+                    .sort((a, b) =>
+                      (nomeVariacao(exercicioVariacoes, a) ?? "").localeCompare(
+                        nomeVariacao(exercicioVariacoes, b) ?? "",
+                        "pt-BR",
+                        { sensitivity: "base" },
+                      ),
+                    )
+                    .map((id) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setFiltroVariacao(id)}
+                        className={`min-h-11 rounded-full px-3.5 text-[13px] font-semibold ${
+                          filtroVariacao === id ? "bg-accent text-foreground" : "bg-secondary text-muted-foreground"
+                        }`}
+                      >
+                        {nomeVariacao(exercicioVariacoes, id) ?? "Variação"}
+                      </button>
+                    ))}
+                </div>
+              )}
               <div className="flex flex-col gap-2">
                 {/* A linha inteira abre a edição (que também apaga). Antes eram
                     dois botões de ícone de 14 e 15px, sem padding e a 8px um do
-                    outro — o de apagar era destrutivo. */}
-                {seriesRecentePrimeiro.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => setSerieEditando(s)}
-                    aria-label={`Editar série de ${formatDataSerie(s.data)}: ${formatCarga(s.carga)} kg por ${s.reps} repetições`}
-                    className="shadow-soft-subtle flex min-h-11 w-full items-center justify-between rounded-xl bg-card px-4 py-3 text-left active:opacity-70"
-                  >
-                    <span className="w-16 shrink-0 text-[13px] text-muted-foreground">{formatDataSerie(s.data)}</span>
-                    <span className="flex-1 text-center text-[15px] font-bold">{formatCarga(s.carga)} kg</span>
-                    <span className="flex shrink-0 items-center justify-end gap-2">
-                      <span className="text-[13px] text-muted-foreground">× {s.reps}</span>
-                      <QualidadeIcon qualidade={s.qualidade} />
-                      <Pencil size={14} className="text-muted-foreground" aria-hidden="true" />
-                    </span>
-                  </button>
-                ))}
+                    outro, o de apagar era destrutivo. */}
+                {seriesRecentePrimeiro.map((s, i) => {
+                  const dia = getDataLocalISO(new Date(s.data));
+                  const anterior = seriesRecentePrimeiro[i - 1];
+                  const diaAnterior = anterior ? getDataLocalISO(new Date(anterior.data)) : null;
+                  const notaDoDia =
+                    dia !== diaAnterior ? observacaoDoDia(exercicioObservacoes, params.id, dia) : null;
+                  const variacaoNomeDoDia =
+                    dia !== diaAnterior
+                      ? nomeVariacao(exercicioVariacoes, variacaoIdDoDia(exercicioVariacoesDia, params.id, dia))
+                      : null;
+                  return (
+                    <div key={s.id} className="flex flex-col gap-1.5">
+                      {variacaoNomeDoDia && (
+                        <TypographyMuted className="px-1 leading-snug">{variacaoNomeDoDia}</TypographyMuted>
+                      )}
+                      {notaDoDia && (
+                        <TypographyMuted className="px-1 leading-snug">{notaDoDia.texto}</TypographyMuted>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSerieEditando(s)}
+                        aria-label={`Editar série de ${formatDataSerie(s.data)}: ${formatCarga(s.carga)} kg por ${s.reps} repetições`}
+                        className="shadow-soft-subtle flex min-h-11 w-full items-center justify-between rounded-xl bg-card px-4 py-3 text-left active:opacity-70"
+                      >
+                        <span className="w-16 shrink-0 text-[13px] text-muted-foreground">{formatDataSerie(s.data)}</span>
+                        <span className="flex-1 text-center text-[15px] font-bold">{formatCarga(s.carga)} kg</span>
+                        <span className="flex shrink-0 items-center justify-end gap-2">
+                          <span className="text-[13px] text-muted-foreground">× {s.reps}</span>
+                          <QualidadeIcon qualidade={s.qualidade} />
+                          <Pencil size={14} className="text-muted-foreground" aria-hidden="true" />
+                        </span>
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           </>
@@ -163,8 +254,22 @@ export default function ExercicioHistoricoPage() {
 
       <EditarSerieDialog
         serie={serieEditando}
+        observacaoDia={obsEdicao.texto}
+        ultimaObservacao={obsEdicao.ultima}
+        variacoes={variacoesDoExercicio(exercicioVariacoes, params.id)}
+        variacaoDiaId={
+          serieEditando
+            ? variacaoIdDoDia(exercicioVariacoesDia, serieEditando.exercicio_id, obsEdicao.dataISO)
+            : null
+        }
+        onCreateVariacao={(nome) => addVariacaoExercicio(params.id, nome)}
         onOpenChange={(open) => !open && setSerieEditando(null)}
-        onSave={(serieId, carga, reps, qualidade) => updateSerie(serieId, carga, reps, qualidade)}
+        onSave={async (serieId, carga, reps, qualidade, observacao, variacaoId) => {
+          if (!serieEditando) return;
+          await updateSerie(serieId, carga, reps, qualidade);
+          await salvarObservacaoExercicio(serieEditando.exercicio_id, obsEdicao.dataISO, observacao);
+          await setVariacaoDoDia(serieEditando.exercicio_id, obsEdicao.dataISO, variacaoId);
+        }}
         onDelete={removeSerie}
       />
     </>

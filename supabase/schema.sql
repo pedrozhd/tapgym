@@ -74,6 +74,69 @@ create table if not exists public.series (
 
 create index if not exists series_exercicio_id_data_idx on public.series (exercicio_id, data desc);
 
+-- exercicio_observacoes -----------------------------------------------------
+-- Nota do exercício por dia civil (YYYY-MM-DD). Uma por (exercicio, data).
+create table if not exists public.exercicio_observacoes (
+  id uuid primary key default gen_random_uuid(),
+  exercicio_id uuid not null references public.exercicios (id) on delete cascade,
+  data date not null,
+  texto text not null check (char_length(texto) between 1 and 200),
+  created_at timestamptz not null default now(),
+  unique (exercicio_id, data)
+);
+
+create index if not exists exercicio_observacoes_exercicio_id_data_idx
+  on public.exercicio_observacoes (exercicio_id, data desc);
+
+-- exercicio_variacoes -------------------------------------------------------
+-- Filho do exercício pai: só o rótulo do implemento (halter, barra, máquina).
+create table if not exists public.exercicio_variacoes (
+  id uuid primary key default gen_random_uuid(),
+  exercicio_id uuid not null references public.exercicios (id) on delete cascade,
+  nome text not null check (char_length(btrim(nome)) between 1 and 40),
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists exercicio_variacoes_pai_nome_ci_idx
+  on public.exercicio_variacoes (exercicio_id, lower(btrim(nome)));
+
+create index if not exists exercicio_variacoes_exercicio_id_idx
+  on public.exercicio_variacoes (exercicio_id);
+
+-- exercicio_variacao_dia ----------------------------------------------------
+-- Escolha do dia civil. Sem row = Padrão. Série não guarda variação.
+create table if not exists public.exercicio_variacao_dia (
+  exercicio_id uuid not null references public.exercicios (id) on delete cascade,
+  data date not null,
+  variacao_id uuid not null references public.exercicio_variacoes (id) on delete restrict,
+  primary key (exercicio_id, data)
+);
+
+create index if not exists exercicio_variacao_dia_variacao_id_idx
+  on public.exercicio_variacao_dia (variacao_id);
+
+create or replace function public.exercicio_variacao_dia_mesmo_pai()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if not exists (
+    select 1
+    from public.exercicio_variacoes v
+    where v.id = new.variacao_id and v.exercicio_id = new.exercicio_id
+  ) then
+    raise exception 'variacao nao pertence ao exercicio';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists exercicio_variacao_dia_mesmo_pai on public.exercicio_variacao_dia;
+create trigger exercicio_variacao_dia_mesmo_pai
+  before insert or update on public.exercicio_variacao_dia
+  for each row execute function public.exercicio_variacao_dia_mesmo_pai();
+
 -- profiles --------------------------------------------------------------------
 -- Token pessoal para a integração com o Shortcut do iOS (/api/hoje, /api/registrar)
 -- e o nome de exibição do usuário (editável só pelo próprio dono, ver GRANT abaixo).
@@ -99,7 +162,7 @@ create table if not exists public.stripe_events (
 
 -- avisos --------------------------------------------------------------------
 -- Caixa de entrada de comunicados de produto. Sem user_id: conteúdo global,
--- escrito só pela service role (não existe painel de admin — ver migração
+-- escrito só pela service role (não existe painel de admin, ver migração
 -- 0016). Confirmação de leitura é a tabela avisos_lidos, abaixo.
 create table if not exists public.avisos (
   id uuid primary key default gen_random_uuid(),
@@ -117,7 +180,7 @@ create index if not exists avisos_publicado_em_idx on public.avisos (publicado_e
 
 -- avisos_lidos ----------------------------------------------------------------
 -- Recibo de leitura: uma linha por (aviso, usuário), criada quando o aviso é
--- aberto. Nunca é apagada nem atualizada — uma vez lido, lido pra sempre.
+-- aberto. Nunca é apagada nem atualizada, uma vez lido, lido pra sempre.
 create table if not exists public.avisos_lidos (
   aviso_id uuid not null references public.avisos (id) on delete cascade,
   user_id uuid not null references auth.users (id) on delete cascade,
@@ -237,6 +300,9 @@ alter table public.exercicios enable row level security;
 alter table public.treinos enable row level security;
 alter table public.treino_exercicios enable row level security;
 alter table public.series enable row level security;
+alter table public.exercicio_observacoes enable row level security;
+alter table public.exercicio_variacoes enable row level security;
+alter table public.exercicio_variacao_dia enable row level security;
 alter table public.profiles enable row level security;
 alter table public.stripe_events enable row level security;
 alter table public.avisos enable row level security;
@@ -317,8 +383,59 @@ create policy "series: owner full access"
     and public.tem_acesso(auth.uid())
   );
 
+create policy "exercicio_observacoes: owner full access"
+  on public.exercicio_observacoes for all
+  using (
+    exists (
+      select 1 from public.exercicios e
+      where e.id = exercicio_observacoes.exercicio_id and e.user_id = auth.uid()
+    )
+    and public.tem_acesso(auth.uid())
+  )
+  with check (
+    exists (
+      select 1 from public.exercicios e
+      where e.id = exercicio_observacoes.exercicio_id and e.user_id = auth.uid()
+    )
+    and public.tem_acesso(auth.uid())
+  );
+
+create policy "exercicio_variacoes: owner full access"
+  on public.exercicio_variacoes for all
+  using (
+    exists (
+      select 1 from public.exercicios e
+      where e.id = exercicio_variacoes.exercicio_id and e.user_id = auth.uid()
+    )
+    and public.tem_acesso(auth.uid())
+  )
+  with check (
+    exists (
+      select 1 from public.exercicios e
+      where e.id = exercicio_variacoes.exercicio_id and e.user_id = auth.uid()
+    )
+    and public.tem_acesso(auth.uid())
+  );
+
+create policy "exercicio_variacao_dia: owner full access"
+  on public.exercicio_variacao_dia for all
+  using (
+    exists (
+      select 1 from public.exercicios e
+      where e.id = exercicio_variacao_dia.exercicio_id and e.user_id = auth.uid()
+    )
+    and public.tem_acesso(auth.uid())
+  )
+  with check (
+    exists (
+      select 1 from public.exercicios e
+      where e.id = exercicio_variacao_dia.exercicio_id and e.user_id = auth.uid()
+    )
+    and public.tem_acesso(auth.uid())
+  );
+
 -- profiles/api_token são lidos pelo cliente (tela de conta), mas nunca
--- escritos por ele — só o trigger (security definer) cria a linha.
+-- escritos por ele, só o trigger (security definer) cria a linha.
 create policy "profiles: owner can read own token"
   on public.profiles for select
   using (auth.uid() = id);

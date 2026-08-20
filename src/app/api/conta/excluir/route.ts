@@ -6,7 +6,7 @@ import { mesmaOrigem } from "@/lib/mesma-origem";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
 
 /**
- * POST /api/conta/excluir — apaga a conta do usuário logado.
+ * POST /api/conta/excluir: apaga a conta do usuário logado.
  *
  * Ordem: cancela assinatura Stripe (se houver) → limpa tabelas de treino →
  * remove profile → deleteUser no Auth. A limpeza explícita evita lixo se o
@@ -71,6 +71,27 @@ export async function POST(request: NextRequest) {
     const { error: erroSeries } = await admin.from("series").delete().in("exercicio_id", exercicioIds);
     if (erroSeries) {
       return NextResponse.json({ error: "Não deu pra apagar as séries." }, { status: 500 });
+    }
+    const { error: erroObs } = await admin
+      .from("exercicio_observacoes")
+      .delete()
+      .in("exercicio_id", exercicioIds);
+    if (erroObs) {
+      return NextResponse.json({ error: "Não deu pra apagar as observações." }, { status: 500 });
+    }
+    const { error: erroVarDia } = await admin
+      .from("exercicio_variacao_dia")
+      .delete()
+      .in("exercicio_id", exercicioIds);
+    if (erroVarDia) {
+      return NextResponse.json({ error: "Não deu pra apagar as variações do dia." }, { status: 500 });
+    }
+    const { error: erroVar } = await admin
+      .from("exercicio_variacoes")
+      .delete()
+      .in("exercicio_id", exercicioIds);
+    if (erroVar) {
+      return NextResponse.json({ error: "Não deu pra apagar as variações." }, { status: 500 });
     }
     const { error: erroTe } = await admin
       .from("treino_exercicios")

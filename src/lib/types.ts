@@ -56,6 +56,30 @@ export interface Serie {
   data: string;
 }
 
+/** Nota do exercício num dia civil (YYYY-MM-DD). Uma por (exercicio, data). */
+export interface ExercicioObservacao {
+  id: string;
+  exercicio_id: string;
+  data: string;
+  texto: string;
+  created_at: string;
+}
+
+/** Rótulo curto de implemento sob um exercício pai (halter, barra, máquina). */
+export interface ExercicioVariacao {
+  id: string;
+  exercicio_id: string;
+  nome: string;
+  created_at: string;
+}
+
+/** Variação escolhida para o exercício num dia civil. Sem row = Padrão. */
+export interface ExercicioVariacaoDia {
+  exercicio_id: string;
+  data: string;
+  variacao_id: string;
+}
+
 /** treino_exercicios joined with its exercicio, as consumed by the UI. */
 export interface TreinoExercicioComExercicio extends TreinoExercicio {
   exercicio: Exercicio;

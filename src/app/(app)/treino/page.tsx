@@ -30,6 +30,11 @@ export default function MeuTreinoPage() {
     reordenarExerciciosDoTreino,
     setTreinoDoDia,
     updateGrupoMuscular,
+    exercicioVariacoes,
+    exercicioVariacoesDia,
+    addVariacaoExercicio,
+    renameVariacaoExercicio,
+    removeVariacaoExercicio,
   } = useAppStore();
 
   const [exportando, setExportando] = useState(false);
@@ -81,15 +86,14 @@ export default function MeuTreinoPage() {
                   .map((outro) => treinos.find((t) => t.id === outro.treino_id)?.nome || "Sem nome"),
               }));
 
-            const idsNesteTreino = new Set(exerciciosDoTreino.map((te) => te.exercicio_id));
-            const exerciciosDisponiveis = exercicios.filter((e) => !idsNesteTreino.has(e.id));
-
             return (
               <TreinoDiaCard
                 key={treino.id}
                 nome={treino.nome}
                 exercicios={exerciciosDoTreino}
-                exerciciosDisponiveis={exerciciosDisponiveis}
+                todosExercicios={exercicios}
+                variacoes={exercicioVariacoes}
+                variacoesDia={exercicioVariacoesDia}
                 onRename={(nome) => renameTreino(treino.id, nome)}
                 onRemoveDia={() => removeTreino(treino.id)}
                 onAddExercicio={() => addExercicioATreino(treino.id)}
@@ -100,6 +104,11 @@ export default function MeuTreinoPage() {
                 onDesvincularExercicio={removeExercicioDoTreino}
                 onApagarExercicioDefinitivamente={excluirExercicioDefinitivamente}
                 onGrupoMuscularChange={updateGrupoMuscular}
+                onAddVariacao={async (exercicioId, nome) => {
+                  await addVariacaoExercicio(exercicioId, nome);
+                }}
+                onRenameVariacao={renameVariacaoExercicio}
+                onRemoveVariacao={removeVariacaoExercicio}
               />
             );
           })}

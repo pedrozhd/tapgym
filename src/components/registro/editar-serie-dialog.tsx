@@ -1,21 +1,47 @@
 "use client";
 
 import { useState } from "react";
+import { QualidadePicker } from "@/components/registro/qualidade-picker";
+import { VariacaoDoDiaControl } from "@/components/registro/variacao-do-dia-control";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { QualidadePicker } from "@/components/registro/qualidade-picker";
+import { TypographyMuted } from "@/components/ui/typography";
 import { formatCarga, parseCarga } from "@/lib/dashboard";
-import type { Qualidade, Serie } from "@/lib/types";
+import type { ExercicioVariacao, Qualidade, Serie } from "@/lib/types";
 
 interface EditarSerieDialogProps {
   serie: Serie | null;
+  /** Nota do exercício no dia civil desta série, não da série em si. */
+  observacaoDia: string;
+  /** Última nota de um dia anterior; só aparece se o campo do dia estiver vazio. */
+  ultimaObservacao: string | null;
+  variacoes: ExercicioVariacao[];
+  variacaoDiaId: string | null;
+  onCreateVariacao: (nome: string) => Promise<string | null>;
   onOpenChange: (open: boolean) => void;
-  onSave: (serieId: string, carga: number, reps: number, qualidade: Qualidade) => Promise<void>;
+  onSave: (
+    serieId: string,
+    carga: number,
+    reps: number,
+    qualidade: Qualidade,
+    observacaoDia: string,
+    variacaoDiaId: string | null,
+  ) => Promise<void>;
   onDelete: (serieId: string) => Promise<void>;
 }
 
-export function EditarSerieDialog({ serie, onOpenChange, onSave, onDelete }: EditarSerieDialogProps) {
+export function EditarSerieDialog({
+  serie,
+  observacaoDia,
+  ultimaObservacao,
+  variacoes,
+  variacaoDiaId,
+  onCreateVariacao,
+  onOpenChange,
+  onSave,
+  onDelete,
+}: EditarSerieDialogProps) {
   const [carga, setCarga] = useState(0);
   // Texto separado do número, mesmo motivo do CargaCard: sem isso, "17,"
   // digitado no meio da edição vira 17 e o input reescreve por cima, comendo
@@ -23,21 +49,28 @@ export function EditarSerieDialog({ serie, onOpenChange, onSave, onDelete }: Edi
   const [textoCarga, setTextoCarga] = useState("");
   const [reps, setReps] = useState(0);
   const [qualidade, setQualidade] = useState<Qualidade | null>(null);
+  const [observacao, setObservacao] = useState("");
+  const [variacaoId, setVariacaoId] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [apagando, setApagando] = useState(false);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [serieIdSincronizado, setSerieIdSincronizado] = useState<string | null>(null);
 
-  // Repopula os campos sempre que uma nova série é aberta pra edição —
+  // Repopula os campos sempre que uma nova série é aberta pra edição,
   // ajustado durante o render (guia do React) em vez de um efeito, pra não
-  // custar um commit extra.
-  if (serie && serie.id !== serieIdSincronizado) {
+  // custar um commit extra. Ao fechar, zera o id sincronizado senão reabrir
+  // a mesma série manteria edições canceladas.
+  if (!serie) {
+    if (serieIdSincronizado !== null) setSerieIdSincronizado(null);
+  } else if (serie.id !== serieIdSincronizado) {
     setSerieIdSincronizado(serie.id);
     setCarga(serie.carga);
     setTextoCarga(serie.carga === 0 ? "" : formatCarga(serie.carga));
     setReps(serie.reps);
     setQualidade(serie.qualidade);
+    setObservacao(observacaoDia);
+    setVariacaoId(variacaoDiaId);
     setConfirmandoExclusao(false);
     setErro(null);
   }
@@ -49,7 +82,7 @@ export function EditarSerieDialog({ serie, onOpenChange, onSave, onDelete }: Edi
     setErro(null);
     setSalvando(true);
     try {
-      await onSave(serie.id, carga, reps, qualidade);
+      await onSave(serie.id, carga, reps, qualidade, observacao, variacaoId);
       onOpenChange(false);
     } catch {
       setErro("Não deu pra salvar. Tenta de novo.");
@@ -75,7 +108,7 @@ export function EditarSerieDialog({ serie, onOpenChange, onSave, onDelete }: Edi
 
   return (
     <Dialog open={serie !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[340px] rounded-2xl bg-card">
+      <DialogContent className="max-h-[min(90svh,40rem)] max-w-[340px] overflow-y-auto rounded-2xl bg-card">
         <DialogHeader>
           <DialogTitle>Editar série</DialogTitle>
         </DialogHeader>
@@ -107,6 +140,34 @@ export function EditarSerieDialog({ serie, onOpenChange, onSave, onDelete }: Edi
         </div>
 
         <QualidadePicker qualidade={qualidade} onChange={setQualidade} />
+
+        <VariacaoDoDiaControl
+          rotuloPrefixo="Variação"
+          variacoes={variacoes}
+          selecionadaId={variacaoId}
+          onSelect={setVariacaoId}
+          onCreate={async (nome) => {
+            const id = await onCreateVariacao(nome);
+            if (id) setVariacaoId(id);
+          }}
+        />
+
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-bold text-muted-foreground uppercase">Observação do dia</span>
+          <Input
+            id="observacao-do-dia"
+            value={observacao}
+            onChange={(e) => setObservacao(e.target.value)}
+            maxLength={200}
+            autoComplete="off"
+            enterKeyHint="done"
+            placeholder="Ex.: tríceps com a corda"
+            className="h-11 rounded-xl px-3.5 text-base"
+          />
+          {!observacao.trim() && ultimaObservacao && (
+            <TypographyMuted>Última: {ultimaObservacao}</TypographyMuted>
+          )}
+        </div>
 
         {erro && (
           <p role="alert" className="text-[13px] text-destructive">

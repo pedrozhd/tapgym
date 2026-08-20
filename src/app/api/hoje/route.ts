@@ -2,9 +2,11 @@ import { type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { COLUNAS_ACESSO, temAcesso, type PerfilAcesso } from "@/lib/acesso";
 import { extrairToken, falha, rotaAtalho, sucesso } from "@/lib/atalho";
-import { getTreinoDeHoje, getUltimaSerie } from "@/lib/dashboard";
+import { getTreinoDeHoje } from "@/lib/dashboard";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
-import type { Exercicio, Serie, Treino, TreinoExercicio } from "@/lib/types";
+import { getDataLocalISO } from "@/lib/timezone";
+import type { Exercicio, ExercicioVariacao, ExercicioVariacaoDia, Serie, Treino, TreinoExercicio } from "@/lib/types";
+import { nomeAtalho, ultimaSerieDaClassificacao, variacaoIdDoDia, nomeVariacao } from "@/lib/variacao-exercicio";
 
 type PerfilToken = PerfilAcesso & { id: string };
 
@@ -22,10 +24,10 @@ async function resolvePerfil(
 }
 
 /**
- * GET /api/hoje — retorna o treino de hoje e seus exercícios para o Shortcut
+ * GET /api/hoje: retorna o treino de hoje e seus exercícios para o Shortcut
  * do iOS. `token` é o `profiles.api_token` de cada usuário, aceito por header
  * `Authorization: Bearer` (preferido) ou por `?token=` (fallback, ver
- * `extrairToken` em `src/lib/atalho.ts`) — resolvido aqui para o user_id
+ * `extrairToken` em `src/lib/atalho.ts`), resolvido aqui para o user_id
  * porque a rota usa a service role key, que ignora RLS.
  *
  * Responde sempre 200, com erro no corpo. Ver `src/lib/atalho.ts`.
@@ -45,7 +47,7 @@ export const GET = rotaAtalho(async (request: NextRequest) => {
   }
 
   // Esta rota não passa pelo middleware (nem por RLS, por usar a service role
-  // key), então o paywall precisa ser checado aqui — senão o atalho continua
+  // key), então o paywall precisa ser checado aqui, senão o atalho continua
   // funcionando depois de a assinatura ser cancelada ou ficar em atraso.
   if (!temAcesso(perfil)) {
     return falha(402, "Assinatura inativa, reative no app");
@@ -82,7 +84,7 @@ export const GET = rotaAtalho(async (request: NextRequest) => {
   // .eq("user_id", userId) é o que impede um exercicio_id de outro usuário
   // (colado em treino_exercicios por fora da UI, já que a policy de RLS dessa
   // tabela só valida o treino) de vazar nome e carga aqui: como a rota usa a
-  // service role key, é este filtro — não o banco — quem garante a posse.
+  // service role key, é este filtro, não o banco, quem garante a posse.
   const { data: exercicios } = exercicioIds.length
     ? await admin.from("exercicios").select("*").in("id", exercicioIds).eq("user_id", userId)
     : { data: [] as Exercicio[] };
@@ -93,18 +95,36 @@ export const GET = rotaAtalho(async (request: NextRequest) => {
     ? await admin.from("series").select("*").in("exercicio_id", exercicioIdsDoDono)
     : { data: [] as Serie[] };
 
+  const { data: variacoes } = exercicioIdsDoDono.length
+    ? await admin.from("exercicio_variacoes").select("*").in("exercicio_id", exercicioIdsDoDono)
+    : { data: [] as ExercicioVariacao[] };
+
+  const { data: variacoesDia } = exercicioIdsDoDono.length
+    ? await admin.from("exercicio_variacao_dia").select("*").in("exercicio_id", exercicioIdsDoDono)
+    : { data: [] as ExercicioVariacaoDia[] };
+
+  const hojeStr = getDataLocalISO(new Date());
+
   const resultado = ((treinoExercicios ?? []) as TreinoExercicio[])
     .filter((te) => exercicioIdsDoDono.includes(te.exercicio_id))
     .map((te) => {
       const exercicio = ((exercicios ?? []) as Exercicio[]).find((e) => e.id === te.exercicio_id);
-      const ultima = getUltimaSerie(((series ?? []) as Serie[]).filter((s) => s.exercicio_id === te.exercicio_id));
+      const varId = variacaoIdDoDia((variacoesDia ?? []) as ExercicioVariacaoDia[], te.exercicio_id, hojeStr);
+      const varNome = nomeVariacao((variacoes ?? []) as ExercicioVariacao[], varId);
+      const ultima = ultimaSerieDaClassificacao(
+        (series ?? []) as Serie[],
+        (variacoesDia ?? []) as ExercicioVariacaoDia[],
+        te.exercicio_id,
+        varId,
+      );
       return {
         id: te.exercicio_id,
-        nome: exercicio?.nome ?? "Exercício",
+        nome: nomeAtalho(exercicio?.nome ?? "", varNome),
         num_series: te.num_series,
         rep_min: te.rep_min,
         rep_max: te.rep_max,
         ultima_carga: ultima?.carga ?? 0,
+        variacao: varNome,
       };
     });
 

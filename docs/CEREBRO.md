@@ -4,7 +4,7 @@ Documento de referência do sistema: o que existe, por que existe, e o que mora 
 
 Escrito para quem (pessoa ou agente) chega sem contexto e precisa mexer sem quebrar decisões já tomadas. Não é changelog: o `git log` já conta o que mudou. Aqui está o **porquê**, que é o que se perde.
 
-Última revisão: 2026-07-29.
+Última revisão: 2026-08-20.
 
 ---
 
@@ -186,7 +186,7 @@ Duas rotas, autenticadas por `profiles.api_token` (não por sessão). Usam a ser
 
 ```
 GET /api/hoje?token=...
-  { ok: true,  treino_nome, exercicios: [{ id, nome, num_series, rep_min, rep_max, ultima_carga }] }
+  { ok: true,  treino_nome, exercicios: [{ id, nome, num_series, rep_min, rep_max, ultima_carga, variacao? }] }
   { ok: false, code: 401, error: "Token inválido" }
   { ok: false, code: 402, error: "Assinatura inativa, reative no app" }
   { ok: false, code: 404, error: "Nenhum treino configurado" | "Hoje é dia de descanso" }
@@ -207,6 +207,8 @@ POST /api/registrar
 O formato vive em `src/lib/atalho.ts`: `sucesso()`, `falha()` e `rotaAtalho()`. **Use as três em qualquer rota nova do atalho**, em vez de montar `NextResponse.json` à mão.
 
 **Essa API precisa ser estável para sempre.** Não existe atualização automática de atalho: nada no servidor consegue alterar um atalho já instalado. Cada quebra de compatibilidade obriga toda a base a reinstalar e reconfigurar o token na mão. Nunca renomeie os caminhos nem os campos; sempre aceite o formato antigo.
+
+**Variação do dia (sem reinstalação).** `id` continua o do exercício pai. Se o Registro tiver uma variação escolhida para hoje, `nome` vira `{pai} · {variação}` (ex.: `Stiff · com halter`) e `ultima_carga` é a última série de um dia com essa variação. Sem variação (Padrão), `nome` e `ultima_carga` são os de sempre. Campo extra `variacao` (string ou null) o atalho antigo ignora; o nome composto é o que o menu instalado realmente mostra. `POST /api/registrar` não muda.
 
 **Sempre chame com `www.`.** O apex `tapgym.com.br` responde `308 Permanent Redirect` para `www.tapgym.com.br`, e esse redirecionamento acontece na camada de domínio, **antes** de qualquer invocação de função. O Atalhos não segue o 308 num POST: a requisição fica pendurada e não aparece log nenhum, porque a função nunca é chamada. Já custou uma sessão de investigação, com o sintoma enganoso de "o POST não funciona" quando o GET, que apontava para o www, funcionava normalmente.
 
